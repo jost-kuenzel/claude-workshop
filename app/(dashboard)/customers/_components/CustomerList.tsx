@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import Pagination from "./Pagination";
+import Pagination from "@/components/Pagination";
 import type { Customer } from "@/lib/types";
 
 export default function CustomerList() {

@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   if (
     path.startsWith("/dashboard") ||
     path.startsWith("/customers") ||
-    path.startsWith("/profile")
+    path.startsWith("/users")
   ) {
     if (!payload) {
       return NextResponse.redirect(new URL("/login", request.url));
