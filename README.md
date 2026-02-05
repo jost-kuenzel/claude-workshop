@@ -1,6 +1,6 @@
-# CRM Workshop
+# ACME CRM Workshop
 
-A simple CRM application built with Next.js 15, TypeScript, shadcn/ui, and SQLite.
+A simple CRM application (ACME CRM) built with Next.js 15, TypeScript, shadcn/ui, and SQLite.
 
 ## Getting Started
 

@@ -3,7 +3,7 @@ export default function DashboardPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
       <p className="text-gray-500">
-        Welcome to the CRM dashboard. Summary widgets and activity feeds will be added here.
+        Welcome to the ACME CRM dashboard. Summary widgets and activity feeds will be added here.
       </p>
     </div>
   );

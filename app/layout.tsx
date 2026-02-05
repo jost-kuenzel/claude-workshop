@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CRM",
+  title: "ACME CRM",
   description: "Customer Relationship Management",
 };
 

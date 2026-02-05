@@ -17,7 +17,7 @@ export default function Sidebar() {
   return (
     <aside className="flex w-64 flex-col border-r bg-white">
       <div className="flex h-16 items-center border-b px-6">
-        <span className="text-lg font-semibold">CRM</span>
+        <span className="text-lg font-semibold">ACME CRM</span>
       </div>
       <nav className="flex-1 px-4 py-4">
         <ul className="space-y-1">
