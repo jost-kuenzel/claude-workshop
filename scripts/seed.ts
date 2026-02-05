@@ -38,8 +38,8 @@ db.exec("DELETE FROM customers; DELETE FROM users;");
 
 // Seed users
 const users = [
-  { email: "admin@crm.local", password: "admin123", name: "Alice Admin", role: "admin" },
-  { email: "viewer@crm.local", password: "viewer123", name: "Victor Viewer", role: "viewer" },
+  { email: "admin@crm.local", password: "admin123", name: "Alex Morgan", role: "admin" },
+  { email: "viewer@crm.local", password: "viewer123", name: "Jordan Lee", role: "viewer" },
 ];
 
 const insertUser = db.prepare(

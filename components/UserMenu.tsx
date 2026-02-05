@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogOutIcon } from "lucide-react";
 
 interface UserMenuProps {
@@ -31,11 +31,15 @@ export default function UserMenu({ name, email }: UserMenuProps) {
     .join("")
     .toUpperCase();
 
+  // Generate thumbs avatar URL from DiceBear using email as seed
+  const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(email)}`;
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2">
           <Avatar className="size-8">
+            <AvatarImage src={avatarUrl} alt={name} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <span className="text-sm font-medium">{name}</span>
