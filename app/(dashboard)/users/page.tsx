@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -15,9 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import Pagination from "@/components/Pagination";
 import type { User } from "@/lib/types";
 
-interface UserWithoutPassword extends Omit<User, "password"> {}
+type UserWithoutPassword = Omit<User, "password">;
 
-interface CurrentUser extends Omit<User, "password"> {}
+type CurrentUser = Omit<User, "password">;
 
 export default function UsersPage() {
   const router = useRouter();
@@ -52,27 +52,30 @@ export default function UsersPage() {
   }, [router]);
 
   // Fetch users list
-  async function fetchUsers(p: number) {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/users?page=${p}&limit=${limit}`);
-      if (!res.ok) {
-        router.push("/dashboard");
-        return;
+  const fetchUsers = useCallback(
+    async (p: number) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/users?page=${p}&limit=${limit}`);
+        if (!res.ok) {
+          router.push("/dashboard");
+          return;
+        }
+        const data = await res.json();
+        setUsers(data.users);
+        setTotal(data.total);
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json();
-      setUsers(data.users);
-      setTotal(data.total);
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+    [router, limit]
+  );
 
   useEffect(() => {
     if (currentUser) {
       fetchUsers(page);
     }
-  }, [page, currentUser]);
+  }, [page, currentUser, fetchUsers]);
 
   if (loading || !currentUser) {
     return <p className="text-sm text-gray-500">Loading...</p>;
