@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+.npmrc
 
 # debug
 npm-debug.log*
@@ -42,3 +43,8 @@ next-env.d.ts
 
 # database
 /data/
+
+# claude
+.claude/worktrees
+.claude/settings.local.json
+CLAUDE.local.md

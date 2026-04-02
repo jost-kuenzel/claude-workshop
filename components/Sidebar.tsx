@@ -54,6 +54,14 @@ export default function Sidebar() {
     { href: "/users", label: "Users", icon: ShieldIcon, disabled: true, tooltip: "You do not have permission to access this." },
   ];
 
+  type LinkItem = {
+    href: string;
+    label: string;
+    icon: any;
+    disabled?: boolean;
+    tooltip?: string;
+  };
+
   return (
     <aside className="flex w-64 flex-col border-r bg-white">
       <div className="flex h-16 items-center border-b px-6">
@@ -61,7 +69,7 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 px-4 py-4">
         <ul className="space-y-1">
-          {displayLinks.map(({ href, label, icon: Icon, disabled, tooltip }) => (
+          {(displayLinks as LinkItem[]).map(({ href, label, icon: Icon, disabled, tooltip }) => (
             <li key={href}>
               {disabled ? (
                 <div
