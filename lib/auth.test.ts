@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from "vitest";
 import {
   hashPassword,
   comparePasswords,
@@ -7,141 +7,141 @@ import {
   getTokenFromRequest,
   setAuthCookie,
   clearAuthCookie,
-} from '@/lib/auth'
-import { NextResponse } from 'next/server'
-import * as jose from 'jose'
+} from "@/lib/auth";
+import { NextResponse } from "next/server";
+import * as jose from "jose";
 
-describe('auth utilities', () => {
-  describe('hashPassword', () => {
-    it('should produce a hash', async () => {
-      const hash = await hashPassword('password123')
-      expect(hash).toBeTruthy()
-      expect(hash).not.toBe('password123')
-    })
+describe("auth utilities", () => {
+  describe("hashPassword", () => {
+    it("should produce a hash", async () => {
+      const hash = await hashPassword("password123");
+      expect(hash).toBeTruthy();
+      expect(hash).not.toBe("password123");
+    });
 
-    it('should produce different hashes for same input (salting)', async () => {
-      const hash1 = await hashPassword('password123')
-      const hash2 = await hashPassword('password123')
-      expect(hash1).not.toBe(hash2)
-    })
-  })
+    it("should produce different hashes for same input (salting)", async () => {
+      const hash1 = await hashPassword("password123");
+      const hash2 = await hashPassword("password123");
+      expect(hash1).not.toBe(hash2);
+    });
+  });
 
-  describe('comparePasswords', () => {
-    it('should return true for correct password', async () => {
-      const password = 'password123'
-      const hash = await hashPassword(password)
-      const result = await comparePasswords(password, hash)
-      expect(result).toBe(true)
-    })
+  describe("comparePasswords", () => {
+    it("should return true for correct password", async () => {
+      const password = "password123";
+      const hash = await hashPassword(password);
+      const result = await comparePasswords(password, hash);
+      expect(result).toBe(true);
+    });
 
-    it('should return false for wrong password', async () => {
-      const hash = await hashPassword('password123')
-      const result = await comparePasswords('wrongpassword', hash)
-      expect(result).toBe(false)
-    })
-  })
+    it("should return false for wrong password", async () => {
+      const hash = await hashPassword("password123");
+      const result = await comparePasswords("wrongpassword", hash);
+      expect(result).toBe(false);
+    });
+  });
 
-  describe('signToken', () => {
-    it('should return a JWT string with expected payload fields', () => {
+  describe("signToken", () => {
+    it("should return a JWT string with expected payload fields", () => {
       const payload = {
         userId: 1,
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'admin',
-      }
-      const token = signToken(payload)
-      expect(token).toBeTruthy()
-      expect(typeof token).toBe('string')
-    })
-  })
+        email: "test@example.com",
+        name: "Test User",
+        role: "admin",
+      };
+      const token = signToken(payload);
+      expect(token).toBeTruthy();
+      expect(typeof token).toBe("string");
+    });
+  });
 
-  describe('verifyToken', () => {
-    it('should decode valid token', async () => {
+  describe("verifyToken", () => {
+    it("should decode valid token", async () => {
       const payload = {
         userId: 1,
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'admin',
-      }
-      const token = signToken(payload)
-      const decoded = await verifyToken(token)
-      expect(decoded).toBeTruthy()
-      expect(decoded?.userId).toBe(payload.userId)
-      expect(decoded?.email).toBe(payload.email)
-    })
+        email: "test@example.com",
+        name: "Test User",
+        role: "admin",
+      };
+      const token = signToken(payload);
+      const decoded = await verifyToken(token);
+      expect(decoded).toBeTruthy();
+      expect(decoded?.userId).toBe(payload.userId);
+      expect(decoded?.email).toBe(payload.email);
+    });
 
-    it('should return null for tampered token', async () => {
-      const token = 'invalid.token.here'
-      const decoded = await verifyToken(token)
-      expect(decoded).toBeNull()
-    })
+    it("should return null for tampered token", async () => {
+      const token = "invalid.token.here";
+      const decoded = await verifyToken(token);
+      expect(decoded).toBeNull();
+    });
 
-    it('should return null for expired token', async () => {
+    it("should return null for expired token", async () => {
       // Create a token that expires immediately using jose directly
       const payload = {
         userId: 1,
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'admin',
+        email: "test@example.com",
+        name: "Test User",
+        role: "admin",
         exp: Math.floor(Date.now() / 1000) - 1, // Expired 1 second ago
-      }
-      const SECRET = new TextEncoder().encode('test-secret-key-for-vitest')
+      };
+      const SECRET = new TextEncoder().encode("test-secret-key-for-vitest");
       const token = await new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: 'HS256' })
-        .sign(SECRET)
-      const decoded = await verifyToken(token)
-      expect(decoded).toBeNull()
-    })
-  })
+        .setProtectedHeader({ alg: "HS256" })
+        .sign(SECRET);
+      const decoded = await verifyToken(token);
+      expect(decoded).toBeNull();
+    });
+  });
 
-  describe('getTokenFromRequest', () => {
-    it('should extract cookie value', () => {
+  describe("getTokenFromRequest", () => {
+    it("should extract cookie value", () => {
       const mockRequest = {
         cookies: {
-          get: (name: string) => ({
-            value: 'test-token',
+          get: () => ({
+            value: "test-token",
           }),
         },
-      }
-      const token = getTokenFromRequest(mockRequest)
-      expect(token).toBe('test-token')
-    })
+      };
+      const token = getTokenFromRequest(mockRequest);
+      expect(token).toBe("test-token");
+    });
 
-    it('should return null when cookie is absent', () => {
+    it("should return null when cookie is absent", () => {
       const mockRequest = {
         cookies: {
-          get: (name: string) => undefined,
+          get: () => undefined,
         },
-      }
-      const token = getTokenFromRequest(mockRequest)
-      expect(token).toBeNull()
-    })
-  })
+      };
+      const token = getTokenFromRequest(mockRequest);
+      expect(token).toBeNull();
+    });
+  });
 
-  describe('setAuthCookie', () => {
-    it('should set crm_token with correct maxAge', () => {
-      const res = new NextResponse()
-      const token = 'test-token'
-      setAuthCookie(res, token)
-      
-      const cookie = res.cookies.get('crm_token')
-      expect(cookie).toBeTruthy()
-      expect(cookie?.value).toBe(token)
+  describe("setAuthCookie", () => {
+    it("should set crm_token with correct maxAge", () => {
+      const res = new NextResponse();
+      const token = "test-token";
+      setAuthCookie(res, token);
+
+      const cookie = res.cookies.get("crm_token");
+      expect(cookie).toBeTruthy();
+      expect(cookie?.value).toBe(token);
       // Note: NextResponse.cookies.get() returns the cookie value, not options
       // We can't test maxAge directly here without parsing the Set-Cookie header
-    })
-  })
+    });
+  });
 
-  describe('clearAuthCookie', () => {
-    it('should set crm_token with maxAge = 0', () => {
-      const res = new NextResponse()
-      clearAuthCookie(res)
-      
-      const cookie = res.cookies.get('crm_token')
-      expect(cookie).toBeTruthy()
-      expect(cookie?.value).toBe('')
+  describe("clearAuthCookie", () => {
+    it("should set crm_token with maxAge = 0", () => {
+      const res = new NextResponse();
+      clearAuthCookie(res);
+
+      const cookie = res.cookies.get("crm_token");
+      expect(cookie).toBeTruthy();
+      expect(cookie?.value).toBe("");
       // Note: NextResponse.cookies.get() returns the cookie value, not options
       // We can't test maxAge directly here without parsing the Set-Cookie header
-    })
-  })
-})
+    });
+  });
+});

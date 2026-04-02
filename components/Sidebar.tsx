@@ -11,9 +11,7 @@ const baseLinks = [
   { href: "/customers", label: "Customers", icon: UsersIcon },
 ];
 
-const adminLinks = [
-  { href: "/users", label: "Users", icon: ShieldIcon },
-];
+const adminLinks = [{ href: "/users", label: "Users", icon: ShieldIcon }];
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -49,15 +47,23 @@ export default function Sidebar() {
   const allLinks = [...baseLinks, ...(isAdmin ? adminLinks : [])];
 
   // For non-admins, show Users as disabled link
-  const displayLinks = isAdmin ? allLinks : [
-    ...baseLinks,
-    { href: "/users", label: "Users", icon: ShieldIcon, disabled: true, tooltip: "You do not have permission to access this." },
-  ];
+  const displayLinks = isAdmin
+    ? allLinks
+    : [
+        ...baseLinks,
+        {
+          href: "/users",
+          label: "Users",
+          icon: ShieldIcon,
+          disabled: true,
+          tooltip: "You do not have permission to access this.",
+        },
+      ];
 
   type LinkItem = {
     href: string;
     label: string;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     disabled?: boolean;
     tooltip?: string;
   };

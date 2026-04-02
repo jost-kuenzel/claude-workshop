@@ -7,11 +7,7 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Protect dashboard routes
-  if (
-    path.startsWith("/dashboard") ||
-    path.startsWith("/customers") ||
-    path.startsWith("/users")
-  ) {
+  if (path.startsWith("/dashboard") || path.startsWith("/customers") || path.startsWith("/users")) {
     if (!payload) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
