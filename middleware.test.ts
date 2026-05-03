@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "bun:test";
 import { middleware } from "@/middleware";
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth";

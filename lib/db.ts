@@ -1,15 +1,15 @@
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 import path from "path";
 
 const DB_PATH = path.resolve(process.cwd(), "data", "crm.db");
 
-let db: Database.Database;
+let db: Database;
 
-export function getDb(): Database.Database {
+export function getDb(): Database {
   if (!db) {
     db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
-    db.pragma("foreign_keys = ON");
+    db.exec("PRAGMA journal_mode = WAL");
+    db.exec("PRAGMA foreign_keys = ON");
     initSchema();
   }
   return db;

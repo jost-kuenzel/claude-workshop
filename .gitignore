@@ -48,3 +48,6 @@ next-env.d.ts
 .claude/worktrees
 .claude/settings.local.json
 CLAUDE.local.md
+
+# bun
+bun.lockb

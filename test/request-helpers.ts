@@ -44,7 +44,7 @@ export function makeRequest(
     requestHeaders["Cookie"] = cookie;
   }
 
-  const requestOptions: RequestInit = {
+  const requestOptions: { method: string; headers: Record<string, string>; body?: string } = {
     method,
     headers: requestHeaders,
   };

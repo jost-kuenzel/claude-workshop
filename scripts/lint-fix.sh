@@ -6,8 +6,8 @@ file_path=$(cat | jq -r '.tool_input.file_path')
 
 case "$file_path" in
   *.ts|*.tsx|*.js|*.mjs|*.json|*.md)
-    npx eslint --fix "$file_path" 2>/dev/null
-    npx prettier --write "$file_path" 2>/dev/null
+    bunx eslint --fix "$file_path" 2>/dev/null
+    bunx prettier --write "$file_path" 2>/dev/null
     ;;
 esac
 

@@ -1,22 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { GET } from "@/app/api/users/route";
-import { getDb } from "@/lib/db";
-import Database from "better-sqlite3";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { Database } from "bun:sqlite";
 import { createTestDb, seedUser } from "@/test/db-helpers";
 import { makeRequest, makeAuthCookie, ADMIN_PAYLOAD, VIEWER_PAYLOAD } from "@/test/request-helpers";
 
-vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
+let testDb: Database;
 
-let testDb: Database.Database;
+mock.module("@/lib/db", () => ({ getDb: () => testDb }));
 
-beforeEach(async () => {
+const { GET } = await import("@/app/api/users/route");
+
+beforeEach(() => {
   testDb = createTestDb();
-  vi.mocked(getDb).mockReturnValue(testDb);
 });
 
 afterEach(() => {
   testDb.close();
-  vi.clearAllMocks();
 });
 
 describe("GET /api/users", () => {
@@ -45,10 +43,9 @@ describe("GET /api/users", () => {
     expect(data.error).toBe("Forbidden");
   });
 
-  it("should return paginated list for admin", { timeout: 30000 }, async () => {
+  it("should return paginated list for admin", async () => {
     await seedUser(testDb, ADMIN_PAYLOAD);
 
-    // Seed multiple users
     for (let i = 0; i < 15; i++) {
       await seedUser(testDb, {
         email: `user${i}@example.com`,
@@ -70,7 +67,7 @@ describe("GET /api/users", () => {
     expect(data.total).toBe(16);
     expect(data.page).toBe(2);
     expect(data.limit).toBe(5);
-  });
+  }, 30000);
 
   it("should not include password field in any returned user", async () => {
     await seedUser(testDb, ADMIN_PAYLOAD);
@@ -89,7 +86,6 @@ describe("GET /api/users", () => {
     const res = await GET(req);
     const data = await res.json();
 
-    // Check that no user has a password field
     data.users.forEach((user: Record<string, unknown>) => {
       expect(user).not.toHaveProperty("password");
     });

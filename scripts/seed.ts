@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
@@ -9,7 +9,7 @@ const DB_PATH = path.resolve(process.cwd(), "data", "crm.db");
 fs.mkdirSync(path.resolve(process.cwd(), "data"), { recursive: true });
 
 const db = new Database(DB_PATH);
-db.pragma("journal_mode = WAL");
+db.exec("PRAGMA journal_mode = WAL");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
