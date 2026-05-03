@@ -21,20 +21,22 @@ export default function CustomerList() {
   const [loading, setLoading] = useState(true);
   const limit = 10;
 
-  async function fetchCustomers(p: number) {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/customers?page=${p}&limit=${limit}`);
-      const data = await res.json();
-      setCustomers(data.customers);
-      setTotal(data.total);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    fetchCustomers(page);
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`/api/customers?page=${page}&limit=${limit}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        setCustomers(data.customers);
+        setTotal(data.total);
+        setLoading(false);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setLoading(false);
+      }
+    })();
+    return () => controller.abort();
   }, [page]);
 
   return (

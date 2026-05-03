@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -51,12 +51,15 @@ export default function UsersPage() {
     fetchCurrentUser();
   }, [router]);
 
-  // Fetch users list
-  const fetchUsers = useCallback(
-    async (p: number) => {
-      setLoading(true);
+  // Fetch users list whenever page or current user changes.
+  useEffect(() => {
+    if (!currentUser) return;
+    const controller = new AbortController();
+    (async () => {
       try {
-        const res = await fetch(`/api/users?page=${p}&limit=${limit}`);
+        const res = await fetch(`/api/users?page=${page}&limit=${limit}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) {
           router.push("/dashboard");
           return;
@@ -64,18 +67,13 @@ export default function UsersPage() {
         const data = await res.json();
         setUsers(data.users);
         setTotal(data.total);
-      } finally {
         setLoading(false);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setLoading(false);
       }
-    },
-    [router]
-  );
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchUsers(page);
-    }
-  }, [page, currentUser, fetchUsers]);
+    })();
+    return () => controller.abort();
+  }, [page, currentUser, router]);
 
   if (loading || !currentUser) {
     return <p className="text-sm text-gray-500">Loading...</p>;
