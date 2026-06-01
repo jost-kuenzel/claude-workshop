@@ -2,6 +2,7 @@
 name: ai-factory
 description: An AI factory workflow that lets a labeled GitHub issue drive Claude to plan, implement, and iterate on changes via PR, with humans reviewing and a slash command driving revision rounds.
 status: draft
+issue: 1
 ---
 
 # AI Factory
