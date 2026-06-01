@@ -34,4 +34,6 @@ const command = Command.make("pr-finalize", { pr, planPath, runId }, (args) =>
 );
 
 const cli = Command.run(command, { name: "factory pr-finalize", version: "0.1.0" });
-cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+if (import.meta.main) {
+  cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+}

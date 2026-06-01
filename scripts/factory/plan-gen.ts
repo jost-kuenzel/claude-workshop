@@ -54,4 +54,6 @@ const command = Command.make("plan-gen", { spec, planPath, issue, runId }, (args
 );
 
 const cli = Command.run(command, { name: "factory plan-gen", version: "0.1.0" });
-cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+if (import.meta.main) {
+  cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+}
