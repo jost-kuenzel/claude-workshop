@@ -21,6 +21,29 @@ and visible behavior over production hardening.
 
 ## Lifecycle
 
+At a glance:
+
+```mermaid
+flowchart TD
+    A["Issue #N — rough idea<br/>(factory-idea template)"] --> B["Human + Claude author spec<br/>commit straight to main"]
+    B --> C["Human applies label <b>factory-go</b>"]
+    C --> D["factory-go.yml → workflow-go.ts<br/>react 👍 · create branch · open PR"]
+    D --> P["plan-gen.ts — factory-plan skill<br/>plan committed + pushed"]
+    P --> T{"Unchecked tasks<br/>remain?"}
+    T -- yes --> R["task-run.ts — factory-implement-task<br/>implementer → spec → quality → fixes"]
+    R --> G["Stop hook gates<br/>lint + test"]
+    G --> X["check off task · commit · push"]
+    X --> T
+    T -- no --> F["pr-finalize.ts — rewrite PR body<br/>react 🎉 / 😕"]
+    F --> H["Human reviews PR"]
+    H --> V{"/factory-revise<br/>comment?"}
+    V -- "yes (under cap 5)" --> RV["factory-revise.yml → workflow-revise.ts<br/>revise → lint/test → commit + push"]
+    RV --> H
+    V -- "approve + merge" --> M["Merge → Closes #N"]
+```
+
+Detailed steps:
+
 ```
 gh issue #N (rough idea — human writes via factory-idea issue template)
         │
@@ -32,18 +55,18 @@ docs/superpowers/specs/YYYY-MM-DD-HHMM--issue-N--<slug>--design.md
         ▼  human applies label `factory-go` to issue #N
         │
         ▼  factory-go.yml fires (on: issues.labeled, filter: factory-go)
-              workflow runs: bun scripts/factory/go.ts which performs:
+              workflow runs: bun scripts/factory/workflow-go.ts which performs:
                   ◦ react 👍 on the issue (gh api reactions)
                   ◦ create branch factory/issue-N--<slug>, empty seed commit, push
                   ◦ gh pr create --base main --head <branch>
                     --title "feat: <issue title>"
                     --body "Closes #N\n\nspec: <spec path>"
-                  ◦ invoke Claude via plan-gen.ts with the writing-plans skill
+                  ◦ invoke Claude via plan-gen.ts with the factory-plan skill
                     → plan file committed + pushed (appears in PR)
                   ◦ task-run.ts loop: while the plan has unchecked tasks:
-                      - invoke Claude on one task using the subagent-driven
-                        prompt (implementer → spec-reviewer →
-                        code-quality-reviewer → fixes)
+                      - invoke Claude on one task using the factory-implement-task
+                        skill (factory-implementer → factory-spec-reviewer →
+                        factory-code-quality-reviewer → fixes)
                       - Stop hook gates lint+test green
                       - check off the task in the plan
                       - commit the check-off
@@ -57,7 +80,7 @@ docs/superpowers/specs/YYYY-MM-DD-HHMM--issue-N--<slug>--design.md
         ▼  human comments `/factory-revise <message>` anywhere on PR
               factory-revise.yml fires
                   concurrency: factory-revise-pr-<N>, cancel-in-progress: true
-                  workflow runs: bun scripts/factory/revise.ts which performs:
+                  workflow runs: bun scripts/factory/workflow-revise.ts which performs:
                       ◦ react 👍 on the triggering comment (gh api reactions)
                       ◦ increment .factory/revise-count-<pr>.txt
                       ◦ if count > 5: post comment "cap reached", exit 1
@@ -86,13 +109,23 @@ docs/superpowers/specs/YYYY-MM-DD-HHMM--issue-N--<slug>--design.md
 4. **Per-task progress is tracked in the plan file itself**, by checking off
    `- [ ]` to `- [x]`. The plan file is the cross-session source of truth.
 5. **No subagent orchestration _across_ tasks.** Inter-task iteration is a
-   `task-run.ts` loop in TypeScript. Subagents are used _within_ a single
-   task to get spec-compliance and code-quality review, per the superpowers
-   `subagent-driven-development` skill.
+   `task-run.ts` loop in TypeScript. _Within_ a single task, the project-local
+   `factory-implement-task` skill orchestrates three custom subagents
+   (implementer, spec-reviewer, code-quality-reviewer) for spec-compliance and
+   code-quality review.
 6. **Local testability is first-class.** Every script can be run on a developer
    machine with environment variables and `--dry-run` flags. The Claude CLI's
    stream-json output is tee'd to both `stdout` and a log file so the operator
    can `tail -f .factory/logs/` while a run is in progress.
+7. **Self-contained factory skills and agents — no runtime dependency on
+   superpowers.** The factory ships its own skills (`.claude/skills/factory-*`)
+   and subagent definitions (`.claude/agents/factory-*`). They are distilled
+   from superpowers primitives (`writing-plans`, `subagent-driven-development`,
+   `test-driven-development`) but deliberately omit the parts that conflict with
+   the factory model — worktrees, branch-finishing, and cross-task looping. This
+   gives direct, version-pinned control and makes the constraints (single task,
+   current branch, no worktree, no PR) **native to the agent definitions**
+   rather than bolted on via prompt injection.
 
 ## Naming Conventions
 
@@ -124,6 +157,14 @@ New paths added by this design:
 
 .claude/
 ├── settings.json                       # extended with Stop hook + PostToolUse hook
+├── skills/
+│   ├── factory-plan/SKILL.md           # plan generation (distilled writing-plans)
+│   ├── factory-implement-task/SKILL.md # single-task orchestrator (implementer + 2 reviewers)
+│   └── factory-tdd/SKILL.md            # TDD discipline the implementer follows
+├── agents/
+│   ├── factory-implementer.md          # implements ONE task via TDD; no branch/worktree/PR
+│   ├── factory-spec-reviewer.md        # read-only: code vs spec
+│   └── factory-code-quality-reviewer.md # read-only: code quality
 └── hooks/
     ├── factory-spec-frontmatter.ts     # PostToolUse: validates spec frontmatter
     └── factory-test-gate.ts            # Stop hook: lint+test gating
@@ -135,10 +176,10 @@ New paths added by this design:
     └── <workflow-run-id>--<step>.jsonl
 
 scripts/factory/
-├── go.ts                               # entry point for factory-go.yml
-├── revise.ts                           # entry point for factory-revise.yml
-├── plan-gen.ts                         # Claude invocation: writing-plans skill
-├── task-run.ts                         # Claude invocation: one task (subagent driven)
+├── workflow-go.ts                      # entry point for factory-go.yml
+├── workflow-revise.ts                  # entry point for factory-revise.yml
+├── plan-gen.ts                         # Claude invocation: factory-plan skill
+├── task-run.ts                         # Claude invocation: one task (factory-implement-task)
 ├── pr-finalize.ts                      # Claude invocation: rewrite PR description
 ├── claude.ts                           # shared CLI wrapper (stream-json + logging)
 ├── plan.ts                             # plan markdown parsing helpers
@@ -178,7 +219,24 @@ be overhead without benefit.
   - the parent process's stdout (so workflow logs and local terminals show
     progress, with a prettifier when `process.stdout.isTTY` is true);
   - `.factory/logs/<run-id>--<step>.jsonl` (raw stream-json for forensics).
-- Forwards `ANTHROPIC_API_KEY` from env.
+- **Auth is environment-adaptive — no API key is required locally.** If
+  `ANTHROPIC_API_KEY` is present in the environment (the CI path), it is
+  forwarded to the CLI. If it is absent (the local-developer path), `claude` is
+  invoked with no key and falls back to the operator's logged-in **subscription**
+  session (the CLI's stored OAuth credentials). `claude.ts` therefore never
+  _requires_ the key; it only forwards one when set. This lets the exact same
+  script run unchanged in CI (API key) and on a developer machine (subscription).
+- Scopes `--allowedTools` **per step** so the factory-mode constraints are
+  enforced at the tool layer, not just by prompt wording. Plan/finalise steps
+  get no branch/push/`gh pr` access; task steps get `Agent` (the dispatch tool —
+  renamed from `Task` in current SDKs) plus `git add`/`git commit`, but never
+  branch creation, `git worktree`, or `gh pr`. The deeper constraints live in
+  the factory skills and agent definitions (see "Factory skills and agents"), so
+  no ad-hoc system-prompt injection is needed.
+- In CI, passes a non-interactive **permission mode** (e.g.
+  `--permission-mode acceptEdits`) so the headless run never blocks on a
+  permission prompt no human can answer. The scoped `--allowedTools` plus each
+  agent's own `tools:` allowlist remain the real safety boundary.
 - Accepts `--model`, `--max-turns`, and `--allowedTools` arguments.
 - Returns an `Effect` that succeeds with the final assistant message text and
   fails with a typed error on non-zero exit.
@@ -199,10 +257,12 @@ is for the implementation plan to finalise):
 > <task heading + body extracted from plan>
 > ```
 >
-> Use the `superpowers:subagent-driven-development` skill for this single task:
-> dispatch an implementer subagent (TDD, commits its own work), then a
-> spec-reviewer subagent, then a code-quality-reviewer subagent. Iterate review
-> feedback until both reviewers approve.
+> Use the `factory-implement-task` skill for this single task. It dispatches the
+> `factory-implementer`, `factory-spec-reviewer`, and `factory-code-quality-reviewer`
+> agents and iterates review feedback until both reviewers approve. Those agents
+> already enforce factory mode (single task, current branch, no worktree, no
+> branch creation, no PR) through their own system prompts and tool allowlists,
+> so you do not need to restate those rules.
 >
 > The `Stop` hook will gate `bun run lint && bun test`; do not bypass it.
 >
@@ -213,6 +273,101 @@ is for the implementation plan to finalise):
 After the CLI exits, `task-run.ts` verifies the task is now checked off and
 new commits exist on the branch. If either check fails, the loop halts and a
 PR comment is posted explaining the failure.
+
+### Factory skills and agents
+
+The factory ships a small, self-contained set of skills and subagent
+definitions under `.claude/`. They are **distilled from** superpowers
+primitives but have **no runtime dependency** on the superpowers plugin — the
+factory never invokes `writing-plans`, `subagent-driven-development`,
+`test-driven-development`, `using-git-worktrees`,
+`finishing-a-development-branch`, or `executing-plans` directly.
+
+**Why fork rather than constrain.** `subagent-driven-development` is a
+_whole-plan_ orchestrator: it loops over every task without stopping and
+terminates in `finishing-a-development-branch`, and it lists `using-git-worktrees`
+as a required workflow skill. The factory needs only its _per-task inner loop_.
+Vendoring that loop (plus the plan and TDD discipline) is more direct than
+invoking those skills and negating their built-in behaviour, and it
+version-pins the demo so a future superpowers release cannot silently change
+how the workshop behaves.
+
+**Mapping (what each artifact is distilled from):**
+
+| Factory artifact                               | Distilled from                                | Purpose                                                                    |
+| ---------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- |
+| `.claude/skills/factory-plan`                  | `writing-plans`                               | `plan-gen.ts`: turn the spec into a checkbox task plan with `issue-<N>` fm |
+| `.claude/skills/factory-implement-task`        | `subagent-driven-development` (per-task only) | `task-run.ts`: orchestrate one task — implement → spec review → quality    |
+| `.claude/skills/factory-tdd`                   | `test-driven-development`                     | the discipline the implementer agent follows                               |
+| `.claude/agents/factory-implementer`           | `implementer-prompt.md`                       | implement one task via TDD, commit its own work                            |
+| `.claude/agents/factory-spec-reviewer`         | `spec-reviewer-prompt.md`                     | confirm code matches the spec/task                                         |
+| `.claude/agents/factory-code-quality-reviewer` | `code-quality-reviewer-prompt.md`             | review code quality                                                        |
+
+The per-task inner loop the `factory-implement-task` skill drives:
+
+```mermaid
+flowchart TD
+    S["task-run.ts invokes claude<br/>with factory-implement-task skill"] --> I["Dispatch <b>factory-implementer</b><br/>TDD, commits its own work · skills: factory-tdd"]
+    I --> SR["Dispatch <b>factory-spec-reviewer</b> (read-only)<br/>code vs spec/task"]
+    SR --> SRq{Spec compliant?}
+    SRq -- no --> IF["implementer fixes spec gaps"]
+    IF --> SR
+    SRq -- yes --> CQ["Dispatch <b>factory-code-quality-reviewer</b><br/>(read-only)"]
+    CQ --> CQq{Approved?}
+    CQq -- no --> IQ["implementer fixes quality issues"]
+    IQ --> CQ
+    CQq -- yes --> D["Edit plan: - [ ] → - [x]<br/>commit the check-off"]
+```
+
+**Enforcement lives in the agent definitions.** Each custom agent carries its
+own system prompt and tool allowlist, so "single task, current branch, no
+worktree, no PR" is _native_ — a subagent literally lacks the tools to push or
+open a PR, and there is no `--append-system-prompt` propagation to get wrong. A
+subagent's `tools:` allowlist is **authoritative for that subagent**: the
+top-level CLI `--allowedTools` governs only the orchestrator and cannot widen a
+subagent's grants (confirmed against current Claude Code docs — see "Validation
+spike"). Example:
+
+```text
+// .claude/agents/factory-implementer.md
+---
+name: factory-implementer
+description: Implements exactly one plan task via TDD on the current branch.
+tools: Read, Edit, Write, Grep, Glob, Bash(bun:*), Bash(git add:*), Bash(git commit:*)
+skills: factory-tdd
+model: sonnet
+---
+You implement exactly ONE task via TDD, in the current working directory on the
+already-checked-out branch. The factory-tdd skill is preloaded — follow it.
+Commit your own work with a clear message. You NEVER create a branch or git
+worktree, never push, and never create or merge a pull request — you do not have
+the tools to do so, and the surrounding pipeline owns those steps.
+```
+
+The two reviewer agents are granted only read/inspection tools (`Read`, `Grep`,
+`Glob`, `Bash(git diff:*)`, `Bash(git log:*)`, `Bash(bun test:*)`) — they cannot
+modify files, so review and implementation stay cleanly separated.
+
+The orchestrator (the `claude` process `task-run.ts` spawns) takes its
+constraints from the `factory-implement-task` skill it is pointed at, and
+`claude.ts` additionally scopes `--allowedTools` per step (see "Claude CLI
+invocations"). `pr-finalize.ts` and `workflow-revise.ts` prompts state
+explicitly that they only edit the PR body / commit fixes and never finalise or
+merge the branch.
+
+**Diagrams in `SKILL.md` files (mirror superpowers, rendered as mermaid).** Each
+factory skill reproduces its source skill's diagram convention exactly — same
+sections, same diagrams — but authored in a ` ```mermaid ` block instead of a
+Graphviz ` ```dot ` digraph. No skill gains a diagram its source lacks, and none
+drops one its source has:
+
+- `factory-implement-task` (from `subagent-driven-development`) → a **When to
+  Use** decision diagram and a **The Process** flow diagram (the per-task inner
+  loop shown above).
+- `factory-tdd` (from `test-driven-development`) → the **red-green-refactor**
+  cycle diagram in its core section.
+- `factory-plan` (from `writing-plans`) → **no diagram** — the source skill has
+  none, so neither does this one.
 
 ### Stop hook semantics (`factory-test-gate.ts`)
 
@@ -265,13 +420,16 @@ proof that "something is happening."
 - Claude CLI `--max-turns`: 50 for plan-gen, 50 per task, 30 for revise, 20
   for pr-finalize.
 - Revise iteration cap: 5 per PR (tracked in `.factory/revise-count-<pr>.txt`,
-  enforced by `revise.ts`).
+  enforced by `workflow-revise.ts`).
 - Stop hook test-gate: 3 attempts per Claude session.
 
 ### Secrets and gitignore
 
-- `ANTHROPIC_API_KEY` lives in repo secrets. Workshop guidance: use a
+- **CI:** `ANTHROPIC_API_KEY` lives in repo secrets. Workshop guidance: use a
   workshop-scoped key with a configured spend cap on the Anthropic console.
+- **Local:** no API key is needed — `claude.ts` falls back to the operator's
+  logged-in subscription session when `ANTHROPIC_API_KEY` is unset (see "Claude
+  CLI invocations").
 - `.gitignore` adds `.factory/`.
 
 ## Workflow YAML Sketches
@@ -306,7 +464,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun add -g @anthropic-ai/claude-code
-      - run: bun scripts/factory/go.ts
+      - run: bun scripts/factory/workflow-go.ts
       - if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -347,7 +505,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun add -g @anthropic-ai/claude-code
-      - run: bun scripts/factory/revise.ts
+      - run: bun scripts/factory/workflow-revise.ts
       - if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -399,7 +557,7 @@ Every Claude-invocation script supports being run standalone:
 
 ```bash
 # whole flow against a real issue, no push / no PR
-ISSUE_NUMBER=42 bun scripts/factory/go.ts --dry-run
+ISSUE_NUMBER=42 bun scripts/factory/workflow-go.ts --dry-run
 
 # only the plan-gen step
 ISSUE_NUMBER=42 bun scripts/factory/plan-gen.ts
@@ -410,7 +568,7 @@ bun scripts/factory/task-run.ts \
   --task-index 0
 
 # simulate a revise round locally
-PR_NUMBER=99 bun scripts/factory/revise.ts --dry-run
+PR_NUMBER=99 bun scripts/factory/workflow-revise.ts --dry-run
 ```
 
 `FACTORY_DRY_RUN=1` is honoured globally — pushes, PR-comment posts, and
@@ -420,12 +578,12 @@ reactions become no-ops, but Claude is still invoked.
 
 | Case                                            | Behaviour                                                                                                                  |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `factory-go` applied with no matching spec      | `go.ts` exits 1, posts a PR-less comment on the issue: "no spec found with frontmatter `issue: <N>`."                      |
+| `factory-go` applied with no matching spec      | `workflow-go.ts` exits 1, posts a PR-less comment on the issue: "no spec found with frontmatter `issue: <N>`."             |
 | Label removed and re-added during a run         | Concurrency group `factory-go-issue-<N>` with `cancel-in-progress: false` queues a second run; the first finishes first.   |
-| Plan markdown malformed                         | `plan.ts` parser throws a typed error; `go.ts` halts and posts the parser error in a PR comment.                           |
+| Plan markdown malformed                         | `plan.ts` parser throws a typed error; `workflow-go.ts` halts and posts the parser error in a PR comment.                  |
 | Subagent loop never approves                    | CLI's `--max-turns` enforces hard ceiling; `task-run.ts` sees no task check-off, halts the outer loop, posts a PR comment. |
 | `/factory-revise` posted on an issue (not a PR) | Workflow `if:` filter excludes it; no run, no reaction.                                                                    |
-| Revise cap exceeded                             | `revise.ts` posts "iteration cap of 5 reached for this PR" comment, exits 1.                                               |
+| Revise cap exceeded                             | `workflow-revise.ts` posts "iteration cap of 5 reached for this PR" comment, exits 1.                                      |
 
 ## Out of Scope
 
@@ -438,9 +596,38 @@ reactions become no-ops, but Claude is still invoked.
 - Spec validation as a GitHub workflow (the PostToolUse hook covers the
   author-time case, which is enough for the workshop).
 
+## Validation Spike
+
+The headless-execution assumptions were validated against current Claude Code
+docs and an empirical `claude --print` test. Confirmed:
+
+- **Project agents are discoverable and dispatchable by name in `--print`
+  mode.** Agents in `.claude/agents/*.md` are loaded at session start (they
+  appear in the session-init event) and can be dispatched by `subagent_type`.
+  The dispatch tool is now named `Agent` (older SDKs emitted `Task`).
+- **A subagent's `tools:` allowlist is authoritative for that subagent.** The
+  CLI `--allowedTools` governs only the top-level orchestrator and cannot widen
+  a subagent's grants — so read-only reviewer agents genuinely cannot edit or
+  push. `tools:` is an allowlist; `disallowedTools:` (applied first) is also
+  supported.
+- **Skills work headless, and agents can preload them.** Project
+  `.claude/skills/*/SKILL.md` are invocable in `--print` mode. An agent can
+  preload a skill via the `skills:` frontmatter field (used for
+  `factory-implementer` → `factory-tdd`), or invoke skills at runtime if `Skill`
+  is in its `tools:`.
+- **Useful agent frontmatter fields confirmed:** `name`, `description`, `tools`,
+  `disallowedTools`, `model` (`sonnet`/`opus`/`haiku`/`inherit`/full-id),
+  `skills`, `maxTurns`, `permissionMode`.
+
 ## Open Questions
 
-None at spec time. The implementation plan should confirm the exact
-`@effect/cli` API surface (`Command.make` / `Options.*` / `Command.run`) and
-the exact Claude CLI flags (`--print`, `--output-format`, etc.) against the
-current versions of those tools.
+The implementation plan should still confirm, against the installed versions:
+
+- The exact `@effect/cli` API surface (`Command.make` / `Options.*` /
+  `Command.run`).
+- The exact Bash-scoping pattern grammar for `tools:` / `--allowedTools` — docs
+  show both colon (`Bash(git commit:*)`) and space (`Bash(git commit *)`) forms;
+  pin down the one the installed CLI honours with a quick local check before
+  relying on it for the no-push/no-`gh` boundary.
+- The exact non-interactive permission flag for the CI invocation
+  (`--permission-mode` value vs. relying solely on `--allowedTools`).
