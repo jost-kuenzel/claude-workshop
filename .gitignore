@@ -49,5 +49,8 @@ next-env.d.ts
 .claude/settings.local.json
 CLAUDE.local.md
 
+# ai factory runtime state
+.factory/
+
 # bun
 bun.lockb
