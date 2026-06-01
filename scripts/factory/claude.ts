@@ -73,7 +73,7 @@ export async function runClaude(o: ClaudeOptions): Promise<string> {
   const lines: string[] = [];
   const decoder = new TextDecoder();
   let buffered = "";
-  for await (const chunk of proc.stdout) {
+  for await (const chunk of proc.stdout as unknown as AsyncIterable<Uint8Array>) {
     const text = decoder.decode(chunk);
     sink.write(text);
     process.stdout.write(text);
