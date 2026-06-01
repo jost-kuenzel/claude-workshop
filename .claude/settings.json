@@ -9,6 +9,25 @@
             "command": "bash scripts/lint-fix.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun .claude/hooks/factory-spec-frontmatter.ts"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun .claude/hooks/factory-test-gate.ts"
+          }
+        ]
       }
     ]
   },
