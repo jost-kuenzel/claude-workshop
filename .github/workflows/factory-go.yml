@@ -17,7 +17,7 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
@@ -28,7 +28,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - run: bun install --frozen-lockfile
-      - run: bun add -g @anthropic-ai/claude-code
+      - run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: bun scripts/factory/workflow-go.ts
       - if: always()
         uses: actions/upload-artifact@v4
