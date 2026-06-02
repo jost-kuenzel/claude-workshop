@@ -11,3 +11,11 @@ test("specFilename follows YYYY-MM-DD-HHMM--issue-N--slug--design.md", () => {
     "docs/superpowers/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md"
   );
 });
+
+test("slugify is a no-op on already-clean slugs", () => {
+  expect(slugify("already-clean-slug")).toBe("already-clean-slug");
+});
+
+test("slugify on all-punctuation yields empty string", () => {
+  expect(slugify("!@#$%")).toBe("");
+});

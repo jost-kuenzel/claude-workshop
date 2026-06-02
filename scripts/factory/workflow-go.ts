@@ -9,6 +9,7 @@ import { reactIssueArgs, createPrArgs, issueCommentArgs, runGh } from "./github"
 import { buildPrompt as buildPlanPrompt, PLAN_TOOLS } from "./plan-gen";
 import { buildTaskPrompt } from "./task-run";
 import { buildFinalizePrompt } from "./pr-finalize";
+import { slugify } from "./spec-author";
 
 /** Pure: pick the spec file whose frontmatter `issue:` equals the issue number. */
 export function matchSpecForIssue(
@@ -22,14 +23,6 @@ export function matchSpecForIssue(
     if (line && Number(line.split(":")[1]?.trim()) === issue) return s.path;
   }
   return undefined;
-}
-
-function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
 }
 
 const issue = Options.integer("issue").pipe(Options.withDefault(Number(process.env.ISSUE_NUMBER)));
@@ -85,7 +78,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
         dryRun: dry,
       })
     );
-    const slug = slugify(title || `issue-${args.issue}`);
+    const slug = slugify(title || `issue-${args.issue}`).slice(0, 40);
     const branch = `factory/issue-${args.issue}--${slug}`;
     const planPath = `docs/superpowers/plans/run-${args.runId}--issue-${args.issue}--${slug}--plan.md`;
 
