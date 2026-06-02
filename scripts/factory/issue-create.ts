@@ -55,6 +55,10 @@ const why = Options.text("why").pipe(
   Options.withDescription("Feature: why"),
   Options.withDefault("")
 );
+const constraints = Options.text("constraints").pipe(
+  Options.withDescription("Feature: optional constraints / non-goals"),
+  Options.withDefault("")
+);
 const broken = Options.text("broken").pipe(
   Options.withDescription("Bug: what's broken"),
   Options.withDefault("")
@@ -74,13 +78,13 @@ const dryRun = Options.boolean("dry-run").pipe(
 
 const command = Command.make(
   "issue-create",
-  { type, title, what, why, broken, expected, where, dryRun },
+  { type, title, what, why, constraints, broken, expected, where, dryRun },
   (a) =>
     Effect.promise(() => {
       const isBug = a.type === "bug";
       const body = isBug
         ? bugBody({ broken: a.broken, expected: a.expected, where: a.where })
-        : featureBody({ what: a.what, why: a.why });
+        : featureBody({ what: a.what, why: a.why, constraints: a.constraints });
       return createIssue(
         { title: a.title, body, labels: labelsFor(isBug ? "bug" : "feature") },
         { dryRun: a.dryRun }

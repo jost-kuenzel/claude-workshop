@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { featureBody, bugBody, labelsFor, createIssueArgs, ensureLabelArgs } from "./issue-create";
+import { spawnSync } from "bun";
 
 test("featureBody renders What/Why and omits empty Constraints", () => {
   const body = featureBody({ what: "Add export", why: "Users ask for CSV" });
@@ -42,4 +43,28 @@ test("createIssueArgs builds gh issue create with repeated --label", () => {
 
 test("ensureLabelArgs builds a gh label create", () => {
   expect(ensureLabelArgs("bug")).toEqual(["label", "create", "bug", "--force"]);
+});
+
+test("CLI --constraints flag is wired through to featureBody in dry-run output", () => {
+  const result = spawnSync(
+    [
+      "bun",
+      "run",
+      "scripts/factory/issue-create.ts",
+      "--type",
+      "feature",
+      "--title",
+      "Test issue",
+      "--what",
+      "Add export",
+      "--why",
+      "Users ask for CSV",
+      "--constraints",
+      "no new deps",
+      "--dry-run",
+    ],
+    { cwd: "/Users/jost/workspace/trainings/claude-workshop", env: { ...process.env } }
+  );
+  const stdout = result.stdout.toString();
+  expect(stdout).toContain("no new deps");
 });

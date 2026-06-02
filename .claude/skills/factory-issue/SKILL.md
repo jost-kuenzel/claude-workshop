@@ -15,7 +15,7 @@ Produce ONE lean, skimmable GitHub issue. This is a mini-brainstorm, not a full 
    - Bug: What's broken / Expected / Where (repro or pointer).
 3. Keep the body short and skimmable. No essays.
 4. Create the issue via the helper (honors FACTORY_DRY_RUN=1):
-   - Feature: `bun scripts/factory/issue-create.ts --type feature --title "<title>" --what "<what>" --why "<why>"`
+   - Feature: `bun scripts/factory/issue-create.ts --type feature --title "<title>" --what "<what>" --why "<why>" [--constraints "<constraints>"]`
    - Bug: `bun scripts/factory/issue-create.ts --type bug --title "<title>" --broken "<broken>" --expected "<expected>" --where "<where>"`
 5. Print the returned issue number/URL.
 
