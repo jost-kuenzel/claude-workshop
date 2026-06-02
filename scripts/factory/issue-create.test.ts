@@ -26,10 +26,18 @@ test("labelsFor: feature vs bug", () => {
 });
 
 test("createIssueArgs builds gh issue create with repeated --label", () => {
-  const args = createIssueArgs({ title: "T", body: "B", labels: ["factory-idea", "bug"] });
-  expect(args.slice(0, 2)).toEqual(["issue", "create"]);
-  expect(args).toContain("--title");
-  expect(args.filter((a) => a === "--label")).toHaveLength(2);
+  expect(createIssueArgs({ title: "T", body: "B", labels: ["factory-idea", "bug"] })).toEqual([
+    "issue",
+    "create",
+    "--title",
+    "T",
+    "--body",
+    "B",
+    "--label",
+    "factory-idea",
+    "--label",
+    "bug",
+  ]);
 });
 
 test("ensureLabelArgs builds a gh label create", () => {

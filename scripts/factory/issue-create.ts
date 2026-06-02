@@ -42,22 +42,50 @@ export async function createIssue(
   return runGh(createIssueArgs(o), opts);
 }
 
+const type = Options.text("type").pipe(
+  Options.withDescription("feature | bug"),
+  Options.withDefault("feature")
+);
 const title = Options.text("title");
-const what = Options.text("what");
-const why = Options.text("why");
-const dryRun = Options.boolean("dry-run").pipe(Options.withDefault(false));
+const what = Options.text("what").pipe(
+  Options.withDescription("Feature: what"),
+  Options.withDefault("")
+);
+const why = Options.text("why").pipe(
+  Options.withDescription("Feature: why"),
+  Options.withDefault("")
+);
+const broken = Options.text("broken").pipe(
+  Options.withDescription("Bug: what's broken"),
+  Options.withDefault("")
+);
+const expected = Options.text("expected").pipe(
+  Options.withDescription("Bug: expected"),
+  Options.withDefault("")
+);
+const where = Options.text("where").pipe(
+  Options.withDescription("Bug: where"),
+  Options.withDefault("")
+);
+const dryRun = Options.boolean("dry-run").pipe(
+  Options.withDescription("Skip gh writes (also enabled by FACTORY_DRY_RUN=1)"),
+  Options.withDefault(process.env.FACTORY_DRY_RUN === "1")
+);
 
-const command = Command.make("issue-create", { title, what, why, dryRun }, (a) =>
-  Effect.promise(() =>
-    createIssue(
-      {
-        title: a.title,
-        body: featureBody({ what: a.what, why: a.why }),
-        labels: labelsFor("feature"),
-      },
-      { dryRun: a.dryRun || process.env.FACTORY_DRY_RUN === "1" }
-    ).then((out) => console.log(out))
-  )
+const command = Command.make(
+  "issue-create",
+  { type, title, what, why, broken, expected, where, dryRun },
+  (a) =>
+    Effect.promise(() => {
+      const isBug = a.type === "bug";
+      const body = isBug
+        ? bugBody({ broken: a.broken, expected: a.expected, where: a.where })
+        : featureBody({ what: a.what, why: a.why });
+      return createIssue(
+        { title: a.title, body, labels: labelsFor(isBug ? "bug" : "feature") },
+        { dryRun: a.dryRun }
+      ).then((out) => console.log(out));
+    })
 );
 
 const cli = Command.run(command, { name: "factory issue-create", version: "0.1.0" });
