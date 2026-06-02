@@ -47,22 +47,36 @@ export function issueCommentArgs(number: number, body: string): string[] {
 }
 
 /**
- * Thin exec wrapper. When dryRun is true, logs the command and resolves "" without
- * touching the network. Otherwise spawns `gh <args>` and returns stdout (trimmed).
+ * Low-level process runner. When dryRun is true, logs the command and resolves "" without
+ * executing. Otherwise spawns `cmd <args>` and returns stdout (trimmed).
+ * Error message format: `<cmd> <args> failed (exit <code>): <stderr>`
  */
-export async function runGh(args: string[], opts: { dryRun?: boolean } = {}): Promise<string> {
+export async function runProcess(
+  cmd: string,
+  args: string[],
+  opts: { dryRun?: boolean } = {}
+): Promise<string> {
   if (opts.dryRun) {
-    console.log(`[dry-run] gh ${args.join(" ")}`);
+    console.log(`[dry-run] ${cmd} ${args.join(" ")}`);
     return "";
   }
-  const proc = Bun.spawn(["gh", ...args], { stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, code] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
     proc.exited,
   ]);
   if (code !== 0) {
-    throw new Error(`gh ${args.join(" ")} failed (exit ${code}): ${stderr.trim()}`);
+    throw new Error(`${cmd} ${args.join(" ")} failed (exit ${code}): ${stderr.trim()}`);
   }
   return stdout.trim();
+}
+
+/**
+ * Thin exec wrapper around runProcess for `gh`. When dryRun is true, logs the command
+ * and resolves "" without touching the network. Otherwise spawns `gh <args>` and returns
+ * stdout (trimmed).
+ */
+export function runGh(args: string[], opts: { dryRun?: boolean } = {}): Promise<string> {
+  return runProcess("gh", args, opts);
 }

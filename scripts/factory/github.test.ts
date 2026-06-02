@@ -1,5 +1,11 @@
 import { test, expect, describe } from "bun:test";
-import { reactIssueArgs, reactCommentArgs, createPrArgs, issueCommentArgs } from "./github";
+import {
+  reactIssueArgs,
+  reactCommentArgs,
+  createPrArgs,
+  issueCommentArgs,
+  runProcess,
+} from "./github";
 
 describe("reactIssueArgs", () => {
   test("builds a gh api POST to the issue reactions endpoint", () => {
@@ -60,5 +66,26 @@ describe("issueCommentArgs", () => {
       "--body",
       "cap reached",
     ]);
+  });
+});
+
+describe("runProcess", () => {
+  test("dry-run logs command and returns empty string", async () => {
+    const logs: string[] = [];
+    const origLog = console.log;
+    console.log = (...args: unknown[]) => logs.push(args.join(" "));
+    const result = await runProcess("git", ["status"], { dryRun: true });
+    console.log = origLog;
+    expect(result).toBe("");
+    expect(logs).toEqual(["[dry-run] git status"]);
+  });
+
+  test("runs a real process and returns trimmed stdout", async () => {
+    const result = await runProcess("echo", ["hello"]);
+    expect(result).toBe("hello");
+  });
+
+  test("throws with exit code when process fails", async () => {
+    await expect(runProcess("false", [])).rejects.toThrow(/false  failed \(exit \d+\)/);
   });
 });

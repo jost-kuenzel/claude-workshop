@@ -1,5 +1,12 @@
 import { expect, test } from "bun:test";
-import { slugify, specFilename, buildFrontmatter } from "./spec-author";
+import {
+  slugify,
+  specFilename,
+  buildFrontmatter,
+  viewIssueArgs,
+  commitSpecArgs,
+  issueFromSpecPath,
+} from "./spec-author";
 import { validateSpecFrontmatter } from "../../.claude/hooks/factory-spec-frontmatter";
 
 test("slugify lowercases, strips punctuation, hyphenates", () => {
@@ -38,15 +45,31 @@ test("buildFrontmatter quotes values containing colons and quotes", () => {
   expect(validateSpecFrontmatter(path, fm + "\n# body").ok).toBe(true);
 });
 
-import { viewIssueArgs, commitSpecArgs } from "./spec-author";
-
 test("viewIssueArgs reads title+body as json", () => {
   expect(viewIssueArgs(6)).toEqual(["issue", "view", "6", "--json", "title,body"]);
 });
 
-test("commitSpecArgs stages just the spec path", () => {
-  expect(commitSpecArgs("docs/superpowers/specs/s.md").add).toEqual([
-    "add",
-    "docs/superpowers/specs/s.md",
-  ]);
+test("commitSpecArgs returns all three sub-arrays with correct issue number", () => {
+  const specPath = "docs/superpowers/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md";
+  const result = commitSpecArgs(specPath);
+  expect(result.add).toEqual(["add", specPath]);
+  expect(result.commit).toEqual(["commit", "-m", "factory: spec for issue 6"]);
+  expect(result.push).toEqual(["push", "origin", "main"]);
+});
+
+test("issueFromSpecPath extracts issue number from a valid spec path", () => {
+  expect(
+    issueFromSpecPath(
+      "docs/superpowers/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md"
+    )
+  ).toBe(6);
+  expect(
+    issueFromSpecPath("docs/superpowers/specs/2026-01-15-0900--issue-123--some-feature--design.md")
+  ).toBe(123);
+});
+
+test("issueFromSpecPath throws when path lacks --issue-N-- segment", () => {
+  expect(() => issueFromSpecPath("docs/superpowers/specs/no-issue-here.md")).toThrow(
+    "cannot find --issue-N-- in spec path"
+  );
 });

@@ -2,7 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runGh } from "./github";
+import { runGh, runProcess } from "./github";
 
 export function slugify(title: string): string {
   return title
@@ -34,26 +34,23 @@ export function viewIssueArgs(issue: number): string[] {
   return ["issue", "view", String(issue), "--json", "title,body"];
 }
 
+export function issueFromSpecPath(specPath: string): number {
+  const m = /--issue-(\d+)--/.exec(specPath);
+  if (!m) throw new Error(`cannot find --issue-N-- in spec path: ${specPath}`);
+  return Number(m[1]);
+}
+
 export function commitSpecArgs(specPath: string): {
   add: string[];
   commit: string[];
   push: string[];
 } {
+  const issue = issueFromSpecPath(specPath);
   return {
     add: ["add", specPath],
-    commit: ["commit", "-m", `factory: spec for issue ${specPath}`],
+    commit: ["commit", "-m", `factory: spec for issue ${issue}`],
     push: ["push", "origin", "main"],
   };
-}
-
-async function runGit(args: string[], opts: { dryRun?: boolean }): Promise<void> {
-  if (opts.dryRun) {
-    console.log(`[dry-run] git ${args.join(" ")}`);
-    return;
-  }
-  const proc = Bun.spawn(["git", ...args], { stdout: "pipe", stderr: "pipe" });
-  const [stderr, code] = await Promise.all([new Response(proc.stderr).text(), proc.exited]);
-  if (code !== 0) throw new Error(`git ${args.join(" ")} failed: ${stderr.trim()}`);
 }
 
 /** Commit the spec and push to main (push is a no-op under dryRun). */
@@ -62,9 +59,9 @@ export async function commitAndPush(
   opts: { dryRun?: boolean } = {}
 ): Promise<void> {
   const a = commitSpecArgs(specPath);
-  await runGit(a.add, opts);
-  await runGit(a.commit, opts);
-  await runGit(a.push, opts);
+  await runProcess("git", a.add, opts);
+  await runProcess("git", a.commit, opts);
+  await runProcess("git", a.push, opts);
 }
 
 export async function readIssue(issue: number, opts: { dryRun?: boolean } = {}): Promise<string> {
