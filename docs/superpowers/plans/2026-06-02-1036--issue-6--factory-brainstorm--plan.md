@@ -14,7 +14,7 @@ by lint + the existing `factory-spec-frontmatter` hook, not unit tests.
 ## Task Checklist
 
 - [x] Task 1: issue-create.ts pure body + label helpers
-- [ ] Task 2: issue-create.ts gh arg-builders + runner + CLI
+- [x] Task 2: issue-create.ts gh arg-builders + runner + CLI
 - [ ] Task 3: spec-author.ts slug + filename helpers
 - [ ] Task 4: spec-author.ts frontmatter + spec-path helpers
 - [ ] Task 5: spec-author.ts gh-read + git commit/push runner + CLI
