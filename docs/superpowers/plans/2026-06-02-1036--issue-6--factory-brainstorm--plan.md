@@ -20,7 +20,7 @@ by lint + the existing `factory-spec-frontmatter` hook, not unit tests.
 - [x] Task 5: spec-author.ts gh-read + git commit/push runner + CLI
 - [x] Task 6: factory-issue skill
 - [x] Task 7: factory-brainstorm-reviewer agent
-- [ ] Task 8: factory-brainstorm skill
+- [x] Task 8: factory-brainstorm skill
 
 ---
 
