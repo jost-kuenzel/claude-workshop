@@ -12,7 +12,7 @@ spec: docs/superpowers/specs/2026-06-02-1256--issue-8--rename-docs-factory-path-
 - [x] Task 3: Update `spec-author.ts` specFilename + test fixtures
 - [x] Task 4: Update `workflow-go.ts` two path references
 - [x] Task 5: Update `factory-brainstorm/SKILL.md` spec-path instruction
-- [ ] Task 6: Verify grep check and full test suite
+- [x] Task 6: Verify grep check and full test suite
 
 ---
 
