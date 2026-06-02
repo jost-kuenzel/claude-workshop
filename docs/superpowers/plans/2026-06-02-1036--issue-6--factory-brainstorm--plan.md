@@ -18,7 +18,7 @@ by lint + the existing `factory-spec-frontmatter` hook, not unit tests.
 - [x] Task 3: spec-author.ts slug + filename helpers
 - [x] Task 4: spec-author.ts frontmatter + spec-path helpers
 - [x] Task 5: spec-author.ts gh-read + git commit/push runner + CLI
-- [ ] Task 6: factory-issue skill
+- [x] Task 6: factory-issue skill
 - [ ] Task 7: factory-brainstorm-reviewer agent
 - [ ] Task 8: factory-brainstorm skill
 
