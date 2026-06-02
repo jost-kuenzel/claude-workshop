@@ -55,7 +55,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
     // 2. find the spec for this issue
     const specs = yield* Effect.promise(async () => {
       const specPaths: string[] = [];
-      for await (const f of new Glob("docs/superpowers/specs/**/*.md").scan(".")) specPaths.push(f);
+      for await (const f of new Glob("docs/factory/specs/**/*.md").scan(".")) specPaths.push(f);
       return Promise.all(
         specPaths.map(async (p) => ({ path: p, content: await Bun.file(p).text() }))
       );
@@ -80,7 +80,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
     );
     const slug = slugify(title || `issue-${args.issue}`).slice(0, 40);
     const branch = `factory/issue-${args.issue}--${slug}`;
-    const planPath = `docs/superpowers/plans/run-${args.runId}--issue-${args.issue}--${slug}--plan.md`;
+    const planPath = `docs/factory/plans/run-${args.runId}--issue-${args.issue}--${slug}--plan.md`;
 
     if (!dry) {
       yield* Effect.promise(async () => {

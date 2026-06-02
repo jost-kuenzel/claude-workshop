@@ -8,35 +8,32 @@ issue: 42
 body`;
 
 describe("validateSpecFrontmatter", () => {
-  test("ignores files outside docs/superpowers/specs", () => {
+  test("ignores files outside docs/factory/specs", () => {
     expect(validateSpecFrontmatter("src/app.ts", "whatever")).toEqual({ ok: true });
   });
 
   test("accepts a spec whose frontmatter has a positive integer issue", () => {
     expect(
       validateSpecFrontmatter(
-        "docs/superpowers/specs/2026-06-01-1200--issue-42--x--design.md",
+        "docs/factory/specs/2026-06-01-1200--issue-42--x--design.md",
         withIssue
       )
     ).toEqual({ ok: true });
   });
 
   test("rejects a spec with no issue key", () => {
-    const r = validateSpecFrontmatter("docs/superpowers/specs/x-design.md", "---\nname: x\n---\nb");
+    const r = validateSpecFrontmatter("docs/factory/specs/x-design.md", "---\nname: x\n---\nb");
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/issue/);
   });
 
   test("rejects a non-positive or non-integer issue", () => {
-    const r = validateSpecFrontmatter(
-      "docs/superpowers/specs/x-design.md",
-      "---\nissue: 0\n---\nb"
-    );
+    const r = validateSpecFrontmatter("docs/factory/specs/x-design.md", "---\nissue: 0\n---\nb");
     expect(r.ok).toBe(false);
   });
 
   test("rejects a spec with no frontmatter block", () => {
-    expect(validateSpecFrontmatter("docs/superpowers/specs/x-design.md", "no frontmatter").ok).toBe(
+    expect(validateSpecFrontmatter("docs/factory/specs/x-design.md", "no frontmatter").ok).toBe(
       false
     );
   });
