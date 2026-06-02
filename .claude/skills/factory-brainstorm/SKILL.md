@@ -23,7 +23,7 @@ Do NOT write code or scaffold anything — this skill ends at a committed spec.
 4. **Propose 2-3 approaches** with trade-offs and a recommendation.
 5. **Present the design section-by-section**, approval after each section.
 6. **Write the spec** to
-   `docs/superpowers/specs/<stamp>--issue-<N>--<slug>--design.md`, where `<stamp>`
+   `docs/factory/specs/<stamp>--issue-<N>--<slug>--design.md`, where `<stamp>`
    is the current `YYYY-MM-DD-HHMM` and `<slug>` is a short kebab-case slug of the
    title. Frontmatter must include `name`, `description`, `status: draft`, and
    `issue: N`. The `factory-spec-frontmatter` hook validates `issue:` on write.
