@@ -11,6 +11,17 @@ import { buildTaskPrompt } from "./task-run";
 import { buildFinalizePrompt } from "./pr-finalize";
 import { slugify } from "./spec-author";
 
+/** Pure: format a Date as YYYY-MM-DD-HHMM (local-time components; UTC in CI), matching `date +%Y-%m-%d-%H%M`. */
+export function stampNow(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+/** Pure: build the dated plan path, mirroring `specFilename` in spec-author.ts. */
+export function planFilename(stamp: string, issue: number, slug: string): string {
+  return `docs/factory/plans/${stamp}--issue-${issue}--${slug}--plan.md`;
+}
+
 /** Pure: pick the spec file whose frontmatter `issue:` equals the issue number. */
 export function matchSpecForIssue(
   specs: { path: string; content: string }[],
@@ -80,7 +91,8 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
     );
     const slug = slugify(title || `issue-${args.issue}`).slice(0, 40);
     const branch = `factory/issue-${args.issue}--${slug}`;
-    const planPath = `docs/factory/plans/run-${args.runId}--issue-${args.issue}--${slug}--plan.md`;
+    // Compute the stamp once so the plan path is stable for the whole run.
+    const planPath = planFilename(stampNow(), args.issue, slug);
 
     if (!dry) {
       yield* Effect.promise(async () => {
