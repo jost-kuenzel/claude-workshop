@@ -1,11 +1,16 @@
 ---
 name: factory-issue
-description: Use to turn a rough idea or bug report into a lean, skimmable GitHub issue for the AI factory. A mini-brainstorm — asks feature-or-bug, then a few one-at-a-time questions to nail the core, then files the issue via scripts/factory/issue-create.ts.
+description: Turn a rough idea or bug report into a lean, skimmable GitHub issue for the AI factory. A mini-brainstorm — asks feature-or-bug, then a few one-at-a-time questions to nail the core, then files the issue via scripts/factory/issue-create.ts. Use this skill WHENEVER the user wants to write, create, file, open, draft, or log a GitHub issue in this repo — including terse one-liners like "write a gh issue", "open an issue for this", or "file a bug" — because every issue here feeds the AI factory pipeline and must use its format and labels. Do NOT create issues directly with `gh issue create`; always route through this skill, even when the request looks trivial or you already have all the context.
 ---
 
 # Factory Issue
 
 Produce ONE lean, skimmable GitHub issue. This is a mini-brainstorm, not a full design.
+
+This skill owns **all** issue creation in this repo. Even if the request is a one-liner
+and you already have the full context, file through the helper below — never shortcut to
+`gh issue create`. The helper applies the factory's format and labels that the downstream
+pipeline depends on; a hand-rolled `gh` issue silently breaks that contract.
 
 ## Process
 
