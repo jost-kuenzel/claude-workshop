@@ -16,7 +16,7 @@ test("slugify lowercases, strips punctuation, hyphenates", () => {
 
 test("specFilename follows YYYY-MM-DD-HHMM--issue-N--slug--design.md", () => {
   expect(specFilename("2026-06-02-1020", 6, "factory-brainstorm")).toBe(
-    "docs/superpowers/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md"
+    "docs/factory/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md"
   );
 });
 
@@ -34,14 +34,14 @@ test("buildFrontmatter emits a valid spec frontmatter block", () => {
   expect(fm).toContain("issue: 6");
   expect(fm).toContain('name: "x"');
   expect(fm).toContain('description: "y"');
-  const path = "docs/superpowers/specs/2026-06-02-1020--issue-6--x--design.md";
+  const path = "docs/factory/specs/2026-06-02-1020--issue-6--x--design.md";
   expect(validateSpecFrontmatter(path, fm + "\n# body").ok).toBe(true);
 });
 
 test("buildFrontmatter quotes values containing colons and quotes", () => {
   const fm = buildFrontmatter({ name: "x", description: 'Add export: CSV and "PDF"', issue: 7 });
   expect(fm).toContain('description: "Add export: CSV and \\"PDF\\""');
-  const path = "docs/superpowers/specs/2026-06-02-1020--issue-7--x--design.md";
+  const path = "docs/factory/specs/2026-06-02-1020--issue-7--x--design.md";
   expect(validateSpecFrontmatter(path, fm + "\n# body").ok).toBe(true);
 });
 
@@ -50,7 +50,7 @@ test("viewIssueArgs reads title+body as json", () => {
 });
 
 test("commitSpecArgs returns all three sub-arrays with correct issue number", () => {
-  const specPath = "docs/superpowers/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md";
+  const specPath = "docs/factory/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md";
   const result = commitSpecArgs(specPath);
   expect(result.add).toEqual(["add", specPath]);
   expect(result.commit).toEqual(["commit", "-m", "factory: spec for issue 6"]);
@@ -59,17 +59,15 @@ test("commitSpecArgs returns all three sub-arrays with correct issue number", ()
 
 test("issueFromSpecPath extracts issue number from a valid spec path", () => {
   expect(
-    issueFromSpecPath(
-      "docs/superpowers/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md"
-    )
+    issueFromSpecPath("docs/factory/specs/2026-06-02-1020--issue-6--factory-brainstorm--design.md")
   ).toBe(6);
   expect(
-    issueFromSpecPath("docs/superpowers/specs/2026-01-15-0900--issue-123--some-feature--design.md")
+    issueFromSpecPath("docs/factory/specs/2026-01-15-0900--issue-123--some-feature--design.md")
   ).toBe(123);
 });
 
 test("issueFromSpecPath throws when path lacks --issue-N-- segment", () => {
-  expect(() => issueFromSpecPath("docs/superpowers/specs/no-issue-here.md")).toThrow(
+  expect(() => issueFromSpecPath("docs/factory/specs/no-issue-here.md")).toThrow(
     "cannot find --issue-N-- in spec path"
   );
 });

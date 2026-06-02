@@ -12,7 +12,7 @@ export function slugify(title: string): string {
 }
 
 export function specFilename(stamp: string, issue: number, slug: string): string {
-  return `docs/superpowers/specs/${stamp}--issue-${issue}--${slug}--design.md`;
+  return `docs/factory/specs/${stamp}--issue-${issue}--${slug}--design.md`;
 }
 
 function yamlString(v: string): string {
