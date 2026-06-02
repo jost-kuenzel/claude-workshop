@@ -63,7 +63,7 @@ test("CLI --constraints flag is wired through to featureBody in dry-run output",
       "no new deps",
       "--dry-run",
     ],
-    { cwd: "/Users/jost/workspace/trainings/claude-workshop", env: { ...process.env } }
+    { cwd: import.meta.dir.replace(/\/scripts\/factory$/, ""), env: { ...process.env } }
   );
   const stdout = result.stdout.toString();
   expect(stdout).toContain("no new deps");
