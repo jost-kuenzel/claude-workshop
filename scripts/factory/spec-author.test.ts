@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { slugify, specFilename } from "./spec-author";
+import { slugify, specFilename, buildFrontmatter } from "./spec-author";
+import { validateSpecFrontmatter } from "../../.claude/hooks/factory-spec-frontmatter";
 
 test("slugify lowercases, strips punctuation, hyphenates", () => {
   expect(slugify("Export CSV (v2)!")).toBe("export-csv-v2");
@@ -18,4 +19,12 @@ test("slugify is a no-op on already-clean slugs", () => {
 
 test("slugify on all-punctuation yields empty string", () => {
   expect(slugify("!@#$%")).toBe("");
+});
+
+test("buildFrontmatter emits a valid spec frontmatter block", () => {
+  const fm = buildFrontmatter({ name: "x", description: "y", issue: 6 });
+  expect(fm.startsWith("---\n")).toBe(true);
+  expect(fm).toContain("issue: 6");
+  const path = "docs/superpowers/specs/2026-06-02-1020--issue-6--x--design.md";
+  expect(validateSpecFrontmatter(path, fm + "\n# body").ok).toBe(true);
 });
