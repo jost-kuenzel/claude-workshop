@@ -1,3 +1,9 @@
+#!/usr/bin/env bun
+import { Command, Options } from "@effect/cli";
+import { BunContext, BunRuntime } from "@effect/platform-bun";
+import { Effect } from "effect";
+import { runGh } from "./github";
+
 export function slugify(title: string): string {
   return title
     .toLowerCase()
@@ -22,4 +28,70 @@ export function buildFrontmatter(o: { name: string; description: string; issue: 
     `issue: ${o.issue}`,
     "---",
   ].join("\n");
+}
+
+export function viewIssueArgs(issue: number): string[] {
+  return ["issue", "view", String(issue), "--json", "title,body"];
+}
+
+export function commitSpecArgs(specPath: string): {
+  add: string[];
+  commit: string[];
+  push: string[];
+} {
+  return {
+    add: ["add", specPath],
+    commit: ["commit", "-m", `factory: spec for issue ${specPath}`],
+    push: ["push", "origin", "main"],
+  };
+}
+
+async function runGit(args: string[], opts: { dryRun?: boolean }): Promise<void> {
+  if (opts.dryRun) {
+    console.log(`[dry-run] git ${args.join(" ")}`);
+    return;
+  }
+  const proc = Bun.spawn(["git", ...args], { stdout: "pipe", stderr: "pipe" });
+  const [stderr, code] = await Promise.all([new Response(proc.stderr).text(), proc.exited]);
+  if (code !== 0) throw new Error(`git ${args.join(" ")} failed: ${stderr.trim()}`);
+}
+
+/** Commit the spec and push to main (push is a no-op under dryRun). */
+export async function commitAndPush(
+  specPath: string,
+  opts: { dryRun?: boolean } = {}
+): Promise<void> {
+  const a = commitSpecArgs(specPath);
+  await runGit(a.add, opts);
+  await runGit(a.commit, opts);
+  await runGit(a.push, opts);
+}
+
+export async function readIssue(issue: number, opts: { dryRun?: boolean } = {}): Promise<string> {
+  return runGh(viewIssueArgs(issue), opts);
+}
+
+const issue = Options.integer("issue").pipe(
+  Options.withDescription("Issue to read"),
+  Options.withDefault(0)
+);
+const commitPath = Options.text("commit-spec").pipe(
+  Options.withDescription("Spec path to commit+push to main"),
+  Options.withDefault("")
+);
+const dryRun = Options.boolean("dry-run").pipe(
+  Options.withDescription("Skip git push / gh writes (also enabled by FACTORY_DRY_RUN=1)"),
+  Options.withDefault(process.env.FACTORY_DRY_RUN === "1")
+);
+
+const command = Command.make("spec-author", { issue, commitPath, dryRun }, (a) =>
+  Effect.promise(async () => {
+    if (a.commitPath) await commitAndPush(a.commitPath, { dryRun: a.dryRun });
+    else if (a.issue > 0) console.log(await readIssue(a.issue, { dryRun: a.dryRun }));
+  })
+);
+
+const cli = Command.run(command, { name: "factory spec-author", version: "0.1.0" });
+if (import.meta.main) {
+  cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
 }

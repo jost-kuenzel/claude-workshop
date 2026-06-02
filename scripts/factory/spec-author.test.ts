@@ -37,3 +37,16 @@ test("buildFrontmatter quotes values containing colons and quotes", () => {
   const path = "docs/superpowers/specs/2026-06-02-1020--issue-7--x--design.md";
   expect(validateSpecFrontmatter(path, fm + "\n# body").ok).toBe(true);
 });
+
+import { viewIssueArgs, commitSpecArgs } from "./spec-author";
+
+test("viewIssueArgs reads title+body as json", () => {
+  expect(viewIssueArgs(6)).toEqual(["issue", "view", "6", "--json", "title,body"]);
+});
+
+test("commitSpecArgs stages just the spec path", () => {
+  expect(commitSpecArgs("docs/superpowers/specs/s.md").add).toEqual([
+    "add",
+    "docs/superpowers/specs/s.md",
+  ]);
+});
