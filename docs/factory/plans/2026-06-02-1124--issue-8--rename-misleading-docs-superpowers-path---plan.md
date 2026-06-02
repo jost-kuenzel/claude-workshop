@@ -1,6 +1,6 @@
 ---
 issue: 8
-spec: docs/superpowers/specs/2026-06-02-1256--issue-8--rename-docs-factory-path--design.md
+spec: docs/factory/specs/2026-06-02-1256--issue-8--rename-docs-factory-path--design.md
 ---
 
 # Rename `docs/superpowers` → `docs/factory` Implementation Plan
