@@ -5,7 +5,7 @@ export interface FmCheck {
   error?: string;
 }
 
-const SPEC_GLOB = /docs\/superpowers\/specs\/.*\.md$/;
+const SPEC_GLOB = /docs\/factory\/specs\/.*\.md$/;
 
 /** Pure: validate that a spec file's frontmatter carries a positive-integer `issue:`. */
 export function validateSpecFrontmatter(filePath: string, content: string): FmCheck {
