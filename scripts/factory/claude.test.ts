@@ -146,6 +146,86 @@ describe("formatEvent", () => {
     expect(formatEvent({ type: "system", subtype: "init" })).toEqual([]);
     expect(formatEvent(null)).toEqual([]);
   });
+
+  test("registers an Agent dispatch and labels its child events with subagent_type", () => {
+    const agents = new Map<string, string>();
+    const dispatch = {
+      type: "assistant",
+      message: {
+        content: [
+          {
+            type: "tool_use",
+            name: "Agent",
+            id: "tu_1",
+            input: { subagent_type: "factory-implementer", description: "Implement task 2" },
+          },
+        ],
+      },
+    };
+    expect(formatEvent(dispatch, agents)).toEqual(["  🔧 Agent  Implement task 2"]);
+
+    const child = {
+      type: "assistant",
+      parent_tool_use_id: "tu_1",
+      message: { content: [{ type: "text", text: "Writing failing test" }] },
+    };
+    expect(formatEvent(child, agents)).toEqual([
+      "      ↳ factory-implementer 💬 Writing failing test",
+    ]);
+  });
+
+  test("labels subagent tool lines and tool errors with the ↳ <agent> prefix", () => {
+    const agents = new Map([["tu_1", "factory-implementer"]]);
+    const tool = {
+      type: "assistant",
+      parent_tool_use_id: "tu_1",
+      message: {
+        content: [{ type: "tool_use", name: "Edit", input: { file_path: "src/auth.ts" } }],
+      },
+    };
+    const err = {
+      type: "user",
+      parent_tool_use_id: "tu_1",
+      message: { content: [{ type: "tool_result", is_error: true, content: "boom" }] },
+    };
+    expect(formatEvent(tool, agents)).toEqual(["      ↳ factory-implementer 🔧 Edit  src/auth.ts"]);
+    expect(formatEvent(err, agents)).toEqual(["      ↳ factory-implementer ⚠️ tool error: boom"]);
+  });
+
+  test("falls back to description then 'agent' when subagent_type is absent", () => {
+    const agents = new Map<string, string>();
+    formatEvent(
+      {
+        type: "assistant",
+        message: {
+          content: [
+            { type: "tool_use", name: "Agent", id: "tu_d", input: { description: "Review spec" } },
+          ],
+        },
+      },
+      agents
+    );
+    expect(agents.get("tu_d")).toBe("Review spec");
+
+    formatEvent(
+      {
+        type: "assistant",
+        message: { content: [{ type: "tool_use", name: "Agent", id: "tu_x", input: {} }] },
+      },
+      agents
+    );
+    expect(agents.get("tu_x")).toBe("agent");
+  });
+
+  test("falls back to the top-level prefix for an unknown parent_tool_use_id", () => {
+    const agents = new Map([["tu_1", "factory-implementer"]]);
+    const orphan = {
+      type: "assistant",
+      parent_tool_use_id: "tu_unknown",
+      message: { content: [{ type: "text", text: "hello" }] },
+    };
+    expect(formatEvent(orphan, agents)).toEqual(["  💬 hello"]);
+  });
 });
 
 describe("resultSummary", () => {

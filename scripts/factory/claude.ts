@@ -97,16 +97,29 @@ export function toolSummary(name: string, input: Record<string, unknown>): strin
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/** Pure: render one stream-json event as compact, indented stdout lines. `[]` = skip. */
-export function formatEvent(ev: any): string[] {
+/**
+ * Pure: render one stream-json event as compact, indented stdout lines. `[]` = skip.
+ *
+ * `agents` is a registry of `Agent` tool-use id → subagent name, read to label
+ * subagent-originated lines and written when this event dispatches an `Agent`.
+ * Events carry `parent_tool_use_id`: absent/null for top-level orchestrator
+ * output, set to the spawning `Agent` tool-use id for subagent output.
+ */
+export function formatEvent(ev: any, agents: Map<string, string> = new Map()): string[] {
   if (!ev || typeof ev !== "object") return [];
+  const parentId = ev.parent_tool_use_id;
+  const agent = parentId ? agents.get(parentId) : undefined;
+  const prefix = agent ? `      ↳ ${agent} ` : "  ";
   if (ev.type === "assistant" && Array.isArray(ev.message?.content)) {
     const out: string[] = [];
     for (const b of ev.message.content) {
       if (b?.type === "text" && typeof b.text === "string" && b.text.trim()) {
-        out.push(`  💬 ${truncate(b.text, 120)}`);
+        out.push(`${prefix}💬 ${truncate(b.text, 120)}`);
       } else if (b?.type === "tool_use" && typeof b.name === "string") {
-        out.push(`  ${toolSummary(b.name, b.input ?? {})}`);
+        if (b.name === "Agent" && typeof b.id === "string") {
+          agents.set(b.id, b.input?.subagent_type ?? b.input?.description ?? "agent");
+        }
+        out.push(`${prefix}${toolSummary(b.name, b.input ?? {})}`);
       }
     }
     return out;
@@ -121,7 +134,7 @@ export function formatEvent(ev: any): string[] {
             : Array.isArray(b.content)
               ? b.content.map((c: any) => c?.text ?? "").join(" ")
               : "";
-        out.push(`  ⚠️ tool error: ${truncate(txt, 120)}`);
+        out.push(`${prefix}⚠️ tool error: ${truncate(txt, 120)}`);
       }
     }
     return out;
@@ -168,6 +181,9 @@ export async function runClaude(o: ClaudeOptions): Promise<string> {
   let buffered = "";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let resultEvent: any = null;
+  // Registry of Agent tool-use id → subagent name, built up as events stream,
+  // so subagent-originated lines can be labeled with their dispatching agent.
+  const agents = new Map<string, string>();
 
   // Open a collapsible group; the verbose detail lives inside it, the outcome
   // is emitted after it closes so it stays visible when the group is collapsed.
@@ -179,7 +195,7 @@ export async function runClaude(o: ClaudeOptions): Promise<string> {
     try {
       const ev = JSON.parse(l);
       if (ev?.type === "result") resultEvent = ev;
-      for (const out of formatEvent(ev)) process.stdout.write(out + "\n");
+      for (const out of formatEvent(ev, agents)) process.stdout.write(out + "\n");
     } catch {
       // non-JSON line: kept verbatim in the log artifact via sink, skipped on stdout
     }
