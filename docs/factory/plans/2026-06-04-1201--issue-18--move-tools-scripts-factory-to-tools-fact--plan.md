@@ -22,8 +22,8 @@ Markdown.
 ## Task Checklist
 
 - [x] Task 1: Relocate the directory with `git mv` and fix the three path-coupled tests
-- [ ] Task 2: Update the six external path references
-- [ ] Task 3: Final verification (tests, lint, grep)
+- [x] Task 2: Update the six external path references
+- [x] Task 3: Final verification (tests, lint, grep)
 
 ---
 
