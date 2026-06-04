@@ -19,7 +19,7 @@ describe("getRandomSimpsonsCharacter", () => {
 
   it("returns imageUrl prefixed with CDN_BASE and character name on success", async () => {
     let callCount = 0;
-    global.fetch = (async (_url: string | URL | Request, _init?: RequestInit) => {
+    global.fetch = (async () => {
       callCount++;
       if (callCount === 1) {
         // First call: GET /characters page 1 — reveals total page count
@@ -35,7 +35,7 @@ describe("getRandomSimpsonsCharacter", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await getRandomSimpsonsCharacter();
 
