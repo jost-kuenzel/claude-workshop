@@ -11,7 +11,7 @@ spec: docs/factory/specs/2026-06-04-0913--issue-13--relocate-tests-into-tests-fo
 - [x] Task 2: Move `@/`-alias tests (no import changes)
 - [x] Task 3: Move `scripts/factory/` tests and fix imports
 - [x] Task 4: Move `.claude/hooks/` tests and fix imports
-- [ ] Task 5: Write failing tests for `isAutomation` field (TDD)
+- [x] Task 5: Write failing tests for `isAutomation` field (TDD)
 - [ ] Task 6: Implement `isAutomation` env gate and wire Stop hook
 
 ---
