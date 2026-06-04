@@ -21,9 +21,10 @@
     "seed": "bun run tools/scripts/seed.ts",
     "test": "bun test src/__tests__ src/lib src/app/api tools && vitest run",
     "test:watch": "bun test src/__tests__ src/lib src/app/api tools --watch",
-    "test:coverage": "bun test src/__tests__ src/lib src/app/api tools --coverage",
+    "test:coverage": "bun test src/__tests__ src/lib src/app/api tools --coverage && vitest run --coverage",
     "test:unit": "bun test src/__tests__ src/lib src/app/api tools",
     "test:components": "vitest run",
+    "test:components:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
