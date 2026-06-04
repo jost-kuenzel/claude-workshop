@@ -1,7 +1,7 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 GlobalRegistrator.register();
 
-import { describe, it, expect, afterAll, afterEach, mock } from "bun:test";
+import { describe, it, expect, afterEach, mock } from "bun:test";
 // @testing-library/react must be dynamically imported AFTER GlobalRegistrator.register()
 // because screen.js in @testing-library/dom captures document.body at module-load time.
 // Static imports in Bun are resolved before any module body code runs (including register()),
@@ -11,7 +11,8 @@ import React from "react";
 
 type SimpsonsCharacter = { imageUrl: string; name: string };
 
-let mockGetCharacter: (signal?: AbortSignal) => Promise<SimpsonsCharacter>;
+let mockGetCharacter: (signal?: AbortSignal) => Promise<SimpsonsCharacter> = () =>
+  Promise.reject(new Error("not set"));
 
 mock.module("@/lib/simpsons", () => ({
   getRandomSimpsonsCharacter: (signal?: AbortSignal) => mockGetCharacter(signal),
@@ -22,7 +23,6 @@ const { default: LoginPage } = await import("@/app/(auth)/login/page");
 // @testing-library/react auto-cleanup relies on a global `afterEach` which Bun does
 // not expose — wire it up explicitly so renders don't accumulate across tests.
 afterEach(() => cleanup());
-afterAll(() => GlobalRegistrator.unregister());
 
 describe("LoginPage — Simpsons image panel", () => {
   it("renders an img with the character name as alt text when fetch resolves", async () => {
