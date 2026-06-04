@@ -11,7 +11,7 @@ import {
   toolSummary,
   formatEvent,
   resultSummary,
-} from "./claude";
+} from "../claude";
 
 describe("buildClaudeArgs", () => {
   test("emits print + stream-json + verbose with scoped tools and prompt last", () => {
