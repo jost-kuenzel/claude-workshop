@@ -11,7 +11,8 @@ jobs:
   revise:
     if: |
       github.event.issue.pull_request != null &&
-      contains(github.event.comment.body, '/factory-revise')
+      contains(github.event.comment.body, '/factory-revise') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
