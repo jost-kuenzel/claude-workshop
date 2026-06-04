@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { nextReviseCount, isOverCap } from "./workflow-revise";
+import { nextReviseCount, isOverCap } from "../workflow-revise";
 
 describe("revise cap", () => {
   test("increments the stored count", () => {

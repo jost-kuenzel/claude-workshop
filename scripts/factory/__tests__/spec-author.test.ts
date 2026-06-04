@@ -6,8 +6,8 @@ import {
   viewIssueArgs,
   commitSpecArgs,
   issueFromSpecPath,
-} from "./spec-author";
-import { validateSpecFrontmatter } from "../../.claude/hooks/factory-spec-frontmatter";
+} from "../spec-author";
+import { validateSpecFrontmatter } from "../../../.claude/hooks/factory-spec-frontmatter";
 
 test("slugify lowercases, strips punctuation, hyphenates", () => {
   expect(slugify("Export CSV (v2)!")).toBe("export-csv-v2");

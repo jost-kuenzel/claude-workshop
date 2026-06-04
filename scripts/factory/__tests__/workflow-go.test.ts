@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { matchSpecForIssue, planFilename, stampNow } from "./workflow-go";
+import { matchSpecForIssue, planFilename, stampNow } from "../workflow-go";
 
 describe("matchSpecForIssue", () => {
   const specs = [

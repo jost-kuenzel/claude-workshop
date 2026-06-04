@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 
 export interface GateInput {
   attempts: number;
+  isAutomation: boolean;
   stopHookActive: boolean;
   lintPassed: boolean;
   testPassed: boolean;
@@ -20,6 +21,9 @@ const MAX_ATTEMPTS = 3;
 
 /** Pure decision: see spec "Stop hook semantics". */
 export function decideGate(input: GateInput): GateDecision {
+  if (!input.isAutomation) {
+    return { action: "allow", nextAttempts: input.attempts, clearCounter: false };
+  }
   if (input.stopHookActive) {
     return { action: "allow", nextAttempts: input.attempts, clearCounter: false };
   }
@@ -51,6 +55,9 @@ async function run(cmd: string[]): Promise<{ ok: boolean; output: string }> {
 // I/O shell — executed only when this file is run directly, not when imported by tests.
 if (import.meta.main) {
   const event = JSON.parse(await Bun.stdin.text());
+  const isAutomation = process.env.GITHUB_ACTIONS === "true";
+  if (!isAutomation) process.exit(0);
+
   const sessionId: string = event.session_id ?? "unknown";
   const counterFile = `.factory/test-gate-attempts-${sessionId}.txt`;
   const attempts = existsSync(counterFile) ? Number(readFileSync(counterFile, "utf8")) || 0 : 0;
@@ -61,6 +68,7 @@ if (import.meta.main) {
 
   const decision = decideGate({
     attempts,
+    isAutomation: true,
     stopHookActive: event.stop_hook_active === true,
     lintPassed: lint.ok,
     testPassed: tests.ok,

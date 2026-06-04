@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { parsePlan, firstUnchecked, checkOffTask } from "./plan";
+import { parsePlan, firstUnchecked, checkOffTask } from "../plan";
 
 const SAMPLE = `# Demo Plan
 

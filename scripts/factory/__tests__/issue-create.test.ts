@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { featureBody, bugBody, labelsFor, createIssueArgs, ensureLabelArgs } from "./issue-create";
+import { featureBody, bugBody, labelsFor, createIssueArgs, ensureLabelArgs } from "../issue-create";
 import { spawnSync } from "bun";
 
 test("featureBody renders What/Why and omits empty Constraints", () => {
@@ -63,7 +63,7 @@ test("CLI --constraints flag is wired through to featureBody in dry-run output",
       "no new deps",
       "--dry-run",
     ],
-    { cwd: import.meta.dir.replace(/\/scripts\/factory$/, ""), env: { ...process.env } }
+    { cwd: import.meta.dir.replace(/\/scripts\/factory\/__tests__$/, ""), env: { ...process.env } }
   );
   const stdout = result.stdout.toString();
   expect(stdout).toContain("no new deps");

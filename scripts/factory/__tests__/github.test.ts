@@ -5,7 +5,7 @@ import {
   createPrArgs,
   issueCommentArgs,
   runProcess,
-} from "./github";
+} from "../github";
 
 describe("reactIssueArgs", () => {
   test("builds a gh api POST to the issue reactions endpoint", () => {
