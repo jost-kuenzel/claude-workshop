@@ -208,4 +208,6 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
 );
 
 const cli = Command.run(command, { name: "factory workflow-go", version: "0.1.0" });
-cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+if (import.meta.main) {
+  cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+}
