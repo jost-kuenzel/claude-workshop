@@ -22,7 +22,7 @@ scripts:
   the skills. Reviewers return `approved` / `changes-requested`; the implementer
   writes code via TDD.
 
-The connective tissue is a set of `tools/scripts/factory/*.ts` Bun scripts: two
+The connective tissue is a set of `tools/factory/*.ts` Bun scripts: two
 orchestrators (`workflow-go.ts`, `workflow-revise.ts`) plus helpers that create
 issues, author specs, parse plans, and drive the `claude` and `gh` CLIs.
 
@@ -107,7 +107,7 @@ flowchart TD
 
 - **Skill:** `factory-issue`. A mini-brainstorm: asks feature-or-bug, then a few
   one-at-a-time questions to nail the core.
-- **Script:** `tools/scripts/factory/issue-create.ts` files the issue via `gh`. Feature
+- **Script:** `tools/factory/issue-create.ts` files the issue via `gh`. Feature
   bodies use `## What / ## Why / ## Constraints`; bug bodies use
   `## What's broken / ## Expected / ## Where`.
 - **Labels:** every factory issue gets **`factory-idea`**; bugs additionally get
@@ -124,7 +124,7 @@ flowchart TD
   Recommendations. Loop until `approved`; the spec is committed only after that.
 - **Artifact:** `docs/factory/specs/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--design.md`,
   with frontmatter `name`, `description`, `status: draft`, `issue: N`.
-- **Commit + push:** `bun tools/scripts/factory/spec-author.ts --commit-spec <path>`. The
+- **Commit + push:** `bun tools/factory/spec-author.ts --commit-spec <path>`. The
   push matters — the CI build finds the spec by globbing `main`.
 - **Handoff hint printed by the skill:**
   `Spec on main. To start implementation: gh issue edit N --add-label factory-go`
@@ -138,7 +138,7 @@ until the PR is open.
 ### 4. Spec → plan · _automated / CI_
 
 - **Skill:** `factory-plan`, dispatched by the orchestrator via
-  `tools/scripts/factory/plan-gen.ts` (tool allowlist `PLAN_TOOLS`).
+  `tools/factory/plan-gen.ts` (tool allowlist `PLAN_TOOLS`).
 - **Reviewer:** dispatches **`factory-plan-reviewer`** (opus, read-only) to check the
   plan against its spec for completeness, fresh-context buildability, decomposition,
   and structure. Loop until `approved`; commit only then.
@@ -152,7 +152,7 @@ until the PR is open.
 ### 5. Plan → code, one task at a time · _automated / CI_
 
 For each unchecked task, the orchestrator dispatches the `factory-implement-task`
-skill (via `tools/scripts/factory/task-run.ts`), which runs a strict three-agent sequence:
+skill (via `tools/factory/task-run.ts`), which runs a strict three-agent sequence:
 
 1. **`factory-implementer`** (sonnet) — implements exactly one task via TDD
    (red → green → refactor; the `factory-tdd` skill is preloaded into it). It writes
@@ -175,7 +175,7 @@ skill (via `tools/scripts/factory/task-run.ts`), which runs a strict three-agent
 
 ### 6. PR finalize · _automated / CI_
 
-After the last task is checked, `tools/scripts/factory/pr-finalize.ts` runs Claude with a
+After the last task is checked, `tools/factory/pr-finalize.ts` runs Claude with a
 **read-only** allowlist (`Read, Grep, Glob, Bash(git log:*), Bash(gh pr edit:*)`) to
 rewrite the PR body into a Summary + Test plan synthesized from the plan and commit
 log. The orchestrator then reacts 🎉 on the issue.
@@ -196,7 +196,7 @@ A human reviews and merges the PR using the **merge commit** strategy. The PR bo
 
 ## The automated build, in detail
 
-This sequence mirrors the actual step order in `tools/scripts/factory/workflow-go.ts`.
+This sequence mirrors the actual step order in `tools/factory/workflow-go.ts`.
 
 ```mermaid
 sequenceDiagram
@@ -208,7 +208,7 @@ sequenceDiagram
     participant AG as subagents
 
     GH->>WF: issue labeled "factory-go"
-    WF->>ORCH: bun tools/scripts/factory/workflow-go.ts
+    WF->>ORCH: bun tools/factory/workflow-go.ts
     ORCH->>GH: react 👍 on issue
     ORCH->>ORCH: glob docs/factory/specs/**, match frontmatter issue:N
     Note over ORCH: no match → comment + 😕 react, fail
@@ -222,7 +222,7 @@ sequenceDiagram
 
     loop until every task checkbox is [x]
         ORCH->>ORCH: parsePlan + firstUnchecked
-        ORCH->>CL: task prompt (TT tools, maxTurns 50)
+        ORCH->>CL: task prompt (TASK_TOOLS, maxTurns 50)
         CL->>AG: implementer → spec-reviewer → code-quality-reviewer
         AG-->>CL: task checked off + committed
         ORCH->>ORCH: verify box flipped (else comment + halt)
@@ -262,10 +262,10 @@ sequenceDiagram
 
 ### GitHub Actions (workflow → trigger → script)
 
-| Workflow             | Trigger (`on:` + `if:`)                                                                                                                | Runs                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `factory-go.yml`     | `issues: [labeled]` and `if: github.event.label.name == 'factory-go'`                                                                  | `bun tools/scripts/factory/workflow-go.ts`     |
-| `factory-revise.yml` | `issue_comment: [created]` and `if: github.event.issue.pull_request != null && contains(github.event.comment.body, '/factory-revise')` | `bun tools/scripts/factory/workflow-revise.ts` |
+| Workflow             | Trigger (`on:` + `if:`)                                                                                                                | Runs                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `factory-go.yml`     | `issues: [labeled]` and `if: github.event.label.name == 'factory-go'`                                                                  | `bun tools/factory/workflow-go.ts`     |
+| `factory-revise.yml` | `issue_comment: [created]` and `if: github.event.issue.pull_request != null && contains(github.event.comment.body, '/factory-revise')` | `bun tools/factory/workflow-revise.ts` |
 
 Both upload `.factory/logs/` as artifact `factory-logs-<run_id>` (`if: always()`).
 
