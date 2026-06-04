@@ -19,7 +19,7 @@ describe("getRandomSimpsonsCharacter", () => {
 
   it("returns imageUrl prefixed with CDN_BASE and character name on success", async () => {
     let callCount = 0;
-    global.fetch = async (_url: string | URL | Request, _init?: RequestInit) => {
+    global.fetch = (async () => {
       callCount++;
       if (callCount === 1) {
         // First call: GET /characters page 1 — reveals total page count
@@ -35,7 +35,7 @@ describe("getRandomSimpsonsCharacter", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
-    };
+    }) as unknown as typeof fetch;
 
     const result = await getRandomSimpsonsCharacter();
 
@@ -44,13 +44,13 @@ describe("getRandomSimpsonsCharacter", () => {
   });
 
   it("throws when the first HTTP response is non-OK", async () => {
-    global.fetch = async () => new Response(null, { status: 500 });
+    global.fetch = (async () => new Response(null, { status: 500 })) as unknown as typeof fetch;
     await expect(getRandomSimpsonsCharacter()).rejects.toThrow();
   });
 
   it("throws when results array is empty", async () => {
     let callCount = 0;
-    global.fetch = async () => {
+    global.fetch = (async () => {
       callCount++;
       if (callCount === 1) {
         return new Response(JSON.stringify({ pages: 1, results: [] }), {
@@ -62,7 +62,7 @@ describe("getRandomSimpsonsCharacter", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    };
+    }) as unknown as typeof fetch;
     await expect(getRandomSimpsonsCharacter()).rejects.toThrow();
   });
 });

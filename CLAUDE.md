@@ -21,4 +21,5 @@ tools as these:
 
 - `npm run test` to run unittests
 - `npm run lint` to lint the code
+- `npm run typecheck` to check types
 - If installed and applicable use `playwright-cli` to test the

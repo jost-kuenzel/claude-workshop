@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import * as jose from "jose";
+import type { JwtPayload, Role } from "@/lib/types";
 
 describe("auth utilities", () => {
   describe("hashPassword", () => {
@@ -43,7 +44,7 @@ describe("auth utilities", () => {
 
   describe("signToken", () => {
     it("should return a JWT string with expected payload fields", () => {
-      const payload = {
+      const payload: JwtPayload = {
         userId: 1,
         email: "test@example.com",
         name: "Test User",
@@ -57,7 +58,7 @@ describe("auth utilities", () => {
 
   describe("verifyToken", () => {
     it("should decode valid token", async () => {
-      const payload = {
+      const payload: JwtPayload = {
         userId: 1,
         email: "test@example.com",
         name: "Test User",
@@ -82,7 +83,7 @@ describe("auth utilities", () => {
         userId: 1,
         email: "test@example.com",
         name: "Test User",
-        role: "admin",
+        role: "admin" as Role,
         exp: Math.floor(Date.now() / 1000) - 1, // Expired 1 second ago
       };
       const SECRET = new TextEncoder().encode("test-secret-key-for-vitest");
