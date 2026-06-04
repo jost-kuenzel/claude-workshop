@@ -4,8 +4,15 @@ import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { runClaude } from "./claude";
 
-// Finalize may read history and edit the PR body. No branch/push/merge/worktree.
-const FINALIZE_TOOLS = ["Read", "Grep", "Glob", "Bash(git log:*)", "Bash(gh pr edit:*)"];
+// Finalize may read history + the current PR, and edit the PR body. No branch/push/merge/worktree.
+const FINALIZE_TOOLS = [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash(git log:*)",
+  "Bash(gh pr view:*)",
+  "Bash(gh pr edit:*)",
+];
 
 const pr = Options.integer("pr").pipe(Options.withDescription("PR number"));
 const planPath = Options.text("plan");

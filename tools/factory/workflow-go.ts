@@ -204,7 +204,14 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
       yield* Effect.promise(() =>
         runClaude({
           prompt: buildFinalizePrompt(prNumber, planPath),
-          allowedTools: ["Read", "Grep", "Glob", "Bash(git log:*)", "Bash(gh pr edit:*)"],
+          allowedTools: [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash(git log:*)",
+            "Bash(gh pr view:*)",
+            "Bash(gh pr edit:*)",
+          ],
           maxTurns: 20,
           permissionMode: "acceptEdits",
           runId: args.runId,
