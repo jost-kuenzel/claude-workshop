@@ -9,7 +9,7 @@ spec: docs/factory/specs/2026-06-04-0913--issue-13--relocate-tests-into-tests-fo
 
 - [x] Task 1: Add ESLint placement guard
 - [x] Task 2: Move `@/`-alias tests (no import changes)
-- [ ] Task 3: Move `scripts/factory/` tests and fix imports
+- [x] Task 3: Move `scripts/factory/` tests and fix imports
 - [ ] Task 4: Move `.claude/hooks/` tests and fix imports
 - [ ] Task 5: Write failing tests for `isAutomation` field (TDD)
 - [ ] Task 6: Implement `isAutomation` env gate and wire Stop hook
