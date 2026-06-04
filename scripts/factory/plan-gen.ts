@@ -4,7 +4,8 @@ import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { runClaude } from "./claude";
 
-// Tool scope for plan generation: read the spec, write/commit the plan. No branch/push/PR.
+// Tool scope for plan generation: read the spec, write/commit the plan, and dispatch
+// the factory-plan-reviewer agent for the review loop. No branch/push/PR.
 const PLAN_TOOLS = [
   "Read",
   "Write",
@@ -12,6 +13,7 @@ const PLAN_TOOLS = [
   "Grep",
   "Glob",
   "Skill",
+  "Agent",
   "Bash(bun:*)",
   "Bash(git add:*)",
   "Bash(git commit:*)",

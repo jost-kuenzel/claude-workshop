@@ -24,7 +24,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    S["task-run.ts invokes claude<br/>with this skill"] --> I["Dispatch <b>factory-implementer</b><br/>(TDD, commits its own work)"]
+    S["task-run.ts invokes claude<br/>with this skill"] --> I["Dispatch <b>factory-implementer</b><br/>(TDD, self-reviews, commits)"]
     I --> SR["Dispatch <b>factory-spec-reviewer</b><br/>(read-only): code vs spec/task"]
     SR --> SRq{Spec compliant?}
     SRq -- no --> IF["implementer fixes spec gaps"]
@@ -40,7 +40,9 @@ flowchart TD
 
 - Dispatch the implementer with the full task text (it does not read the plan file).
 - Spec review happens BEFORE code-quality review. Never reorder.
-- A reviewer that finds issues → implementer fixes → re-review. Repeat until approved.
+- A reviewer that finds issues → implementer fixes → re-review. Repeat until approved,
+  but if the same issue survives ~3 rounds, stop looping and surface it as BLOCKED
+  rather than burning the turn budget on a ping-pong.
 - Both reviewers are read-only; only the implementer changes files.
 - The agents enforce factory mode (single task, current branch, no worktree, no
   branch creation, no push, no PR) through their own tool allowlists — you do not
@@ -48,6 +50,20 @@ flowchart TD
 - When both reviews pass and tests are green, flip this task's `- [ ]` to `- [x]`
   in the plan's `## Task Checklist` and commit with
   `factory: complete task <N> — <task title>`.
+
+## Handling implementer status
+
+The implementer reports one of four statuses — act on it, don't proceed blindly:
+
+- **DONE** — proceed to spec review.
+- **DONE_WITH_CONCERNS** — read the concerns first. Address correctness or scope
+  concerns before review; note observational ones (e.g. "this file is getting large")
+  and proceed.
+- **NEEDS_CONTEXT** — supply the missing context and re-dispatch the implementer; do
+  not review incomplete work.
+- **BLOCKED** — do NOT re-dispatch the same way. If it's a context gap, add context and
+  re-dispatch; if the task is genuinely stuck or the plan itself is wrong, stop the
+  task and surface the blocker (the pipeline halts the run and comments on the issue).
 
 ## Red Flags
 

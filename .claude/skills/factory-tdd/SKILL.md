@@ -62,6 +62,21 @@ Remove duplication, improve names, extract helpers — keeping tests green. Don'
 - You implement exactly ONE task. Do not loop to other tasks.
 - Commit your own work with a clear message when green.
 
+## When stuck
+
+| Problem                   | What it signals                                         |
+| ------------------------- | ------------------------------------------------------- |
+| Don't know how to test it | Write the wished-for API first, then the assertion.     |
+| Test is too complicated   | The design is too complicated — simplify the interface. |
+| You must mock everything  | The code is too coupled — use dependency injection.     |
+| Test setup is huge        | Extract helpers; if still complex, simplify the design. |
+
+## Testing anti-patterns
+
+- Don't assert on mock behavior (e.g. call counts on a mock) in place of real output.
+- Don't add test-only methods or hooks to production code.
+- Don't mock a dependency you don't understand — understand it first.
+
 ## Red Flags — stop and start over
 
 - Code before test

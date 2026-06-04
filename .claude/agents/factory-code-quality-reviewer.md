@@ -10,6 +10,9 @@ Only run after spec compliance has passed.
 
 Assess the diff for this task:
 
+- Correctness: does the code actually do what it intends — logic errors, unhandled
+  edge cases, missing error paths, off-by-one, broken async/await? Spec review already
+  confirmed the right feature was built; you confirm it actually works.
 - Does each file have one clear responsibility with a well-defined interface?
 - Are units decomposed so they can be understood and tested independently?
 - Tests verify real behavior, not mocks; edge cases covered.
