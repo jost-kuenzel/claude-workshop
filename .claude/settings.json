@@ -19,6 +19,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun .claude/hooks/factory-test-gate.ts"
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
