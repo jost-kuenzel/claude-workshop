@@ -36,6 +36,9 @@ export const TASK_TOOLS = [
   // filesystem: create dirs + list (native Read/Grep/Glob preferred for everything else)
   "Bash(mkdir:*)",
   "Bash(ls:*)",
+  // read-only text filter, so piping test/lint output through grep (e.g. `bun test | grep`)
+  // doesn't trip the per-segment approval check on compound commands
+  "Bash(grep:*)",
 ];
 
 const planPath = Options.text("plan").pipe(Options.withDescription("Plan file path"));
