@@ -103,6 +103,7 @@ const command = Command.make("workflow-revise", { pr, commentId, dryRun, runId }
         permissionMode: "acceptEdits",
         runId: args.runId,
         step: "revise",
+        label: `Revise PR #${args.pr}`,
       })
     );
 

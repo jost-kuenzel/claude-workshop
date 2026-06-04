@@ -129,6 +129,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
         permissionMode: "acceptEdits",
         runId: args.runId,
         step: "plan-gen",
+        label: "Plan generation",
       })
     );
     if (!dry)
@@ -158,6 +159,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
           permissionMode: "acceptEdits",
           runId: args.runId,
           step: `task-${target.index}`,
+          label: `Task ${target.index}: ${target.title}`,
         })
       );
 
@@ -195,6 +197,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
           permissionMode: "acceptEdits",
           runId: args.runId,
           step: "pr-finalize",
+          label: "Finalize PR",
         })
       );
     }
