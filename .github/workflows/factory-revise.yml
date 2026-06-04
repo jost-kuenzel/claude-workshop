@@ -35,7 +35,7 @@ jobs:
       - run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - run: bun tools/scripts/factory/workflow-revise.ts
+      - run: bun tools/factory/workflow-revise.ts
       - if: always()
         uses: actions/upload-artifact@v4
         with:
