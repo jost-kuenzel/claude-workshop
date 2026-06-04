@@ -34,7 +34,7 @@ Gather, by reading the real sources:
 - **GitHub Actions** — every `.github/workflows/factory-*.yml`. For each: the
   `on:` event and the `if:` gate (label name, comment substring, etc.), and which
   script it runs. Quote the trigger config exactly — these are load-bearing.
-- **Scripts** — `scripts/factory/*.ts`. Identify the orchestrators
+- **Scripts** — `tools/scripts/factory/*.ts`. Identify the orchestrators
   (e.g. `workflow-go.ts`, `workflow-revise.ts`) and read them to recover the
   **actual step order** of the automated run. Note the helper scripts each step
   invokes and any tool allowlists. Don't infer the sequence — read it.

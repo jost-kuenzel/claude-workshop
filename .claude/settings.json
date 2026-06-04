@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/lint-fix.sh"
+            "command": "bash tools/scripts/lint-fix.sh"
           }
         ]
       },
