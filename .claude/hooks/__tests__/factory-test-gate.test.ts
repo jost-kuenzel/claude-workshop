@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { decideGate } from "./factory-test-gate";
+import { decideGate } from "../factory-test-gate";
 
 describe("decideGate", () => {
   test("allows immediately when stop_hook_active (prevents loops)", () => {

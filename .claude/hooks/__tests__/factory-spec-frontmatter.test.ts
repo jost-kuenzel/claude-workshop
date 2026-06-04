@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { validateSpecFrontmatter } from "./factory-spec-frontmatter";
+import { validateSpecFrontmatter } from "../factory-spec-frontmatter";
 
 const withIssue = `---
 name: x
