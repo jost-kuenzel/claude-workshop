@@ -22,6 +22,22 @@ export function planFilename(stamp: string, issue: number, slug: string): string
   return `docs/factory/plans/${stamp}--issue-${issue}--${slug}--plan.md`;
 }
 
+/** Run a git command, throwing with the captured stderr if it exits non-zero. */
+async function git(...argv: string[]): Promise<void> {
+  const proc = Bun.spawn(["git", ...argv], { stdout: "pipe", stderr: "pipe" });
+  const [err, code] = await Promise.all([new Response(proc.stderr).text(), proc.exited]);
+  if (code !== 0) throw new Error(`git ${argv.join(" ")} failed (${code}): ${err.trim()}`);
+}
+
+/** True if `branch` already exists on origin (idempotency guard for re-triggered runs). */
+async function remoteBranchExists(branch: string): Promise<boolean> {
+  const code = await Bun.spawn(["git", "ls-remote", "--exit-code", "--heads", "origin", branch], {
+    stdout: "ignore",
+    stderr: "ignore",
+  }).exited;
+  return code === 0;
+}
+
 /** Pure: pick the spec file whose frontmatter `issue:` equals the issue number. */
 export function matchSpecForIssue(
   specs: { path: string; content: string }[],
@@ -83,27 +99,35 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
     const planPath = planFilename(stampNow(), args.issue, slug);
 
     if (!dry) {
-      yield* Effect.promise(async () => {
-        await Bun.spawn(["git", "checkout", "-b", branch]).exited;
-        await Bun.spawn([
-          "git",
-          "commit",
-          "--allow-empty",
-          "-m",
-          `factory: seed branch for #${args.issue}`,
-        ]).exited;
-        await Bun.spawn(["git", "push", "-u", "origin", branch]).exited;
-      });
-      yield* Effect.promise(() =>
-        runGh(
-          createPrArgs({
-            base: "main",
-            head: branch,
-            title: `feat: ${title}`,
-            body: `Closes #${args.issue}\n\nspec: ${specPath}`,
-          })
-        )
-      );
+      // Idempotency guard: if the branch already exists on origin (e.g. the
+      // `factory-go` label was re-applied), resume it instead of seeding again.
+      // Without this, every re-trigger appends another `seed branch` commit.
+      const exists = yield* Effect.promise(() => remoteBranchExists(branch));
+      if (exists) {
+        yield* Effect.sync(() =>
+          console.log(`branch ${branch} already exists on origin — resuming without re-seeding`)
+        );
+        yield* Effect.promise(async () => {
+          await git("fetch", "origin", branch);
+          await git("checkout", "-B", branch, `origin/${branch}`);
+        });
+      } else {
+        yield* Effect.promise(async () => {
+          await git("checkout", "-b", branch);
+          await git("commit", "--allow-empty", "-m", `factory: seed branch for #${args.issue}`);
+          await git("push", "-u", "origin", branch);
+        });
+        yield* Effect.promise(() =>
+          runGh(
+            createPrArgs({
+              base: "main",
+              head: branch,
+              title: `feat: ${title}`,
+              body: `Closes #${args.issue}\n\nspec: ${specPath}`,
+            })
+          )
+        );
+      }
     } else {
       yield* Effect.sync(() => console.log(`[dry-run] would create branch ${branch} and PR`));
     }
