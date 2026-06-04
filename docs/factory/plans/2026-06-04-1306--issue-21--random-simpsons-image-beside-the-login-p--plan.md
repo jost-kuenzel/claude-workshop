@@ -13,7 +13,7 @@ spec: docs/factory/specs/2026-06-04-1459--issue-21--random-simpsons-login-image-
 
 ## Task Checklist
 
-- [ ] Task 1: Create Simpsons API helper with unit tests
+- [x] Task 1: Create Simpsons API helper with unit tests
 - [ ] Task 2: Update login page with image column and component tests
 
 ---
