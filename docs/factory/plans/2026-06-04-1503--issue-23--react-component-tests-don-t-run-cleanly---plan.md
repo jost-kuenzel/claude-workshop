@@ -14,7 +14,7 @@ spec: docs/factory/specs/2026-06-04-1658--issue-23--vitest-component-testing--de
 ## Task Checklist
 
 - [x] Task 1: Install Vitest deps, create vitest.config.ts and vitest.setup.ts, add helper scripts
-- [ ] Task 2: Create Button component test as the Vitest template
+- [x] Task 2: Create Button component test as the Vitest template
 - [ ] Task 3: Migrate login page test to Vitest idioms
 - [ ] Task 4: Update bun scripts, clean up preload, remove @happy-dom/global-registrator
 - [ ] Task 5: Fix pre-existing tsc errors in auth.test.ts and simpsons.test.ts
