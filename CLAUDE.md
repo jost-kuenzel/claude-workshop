@@ -1,17 +1,17 @@
 # CLAUDE.md
 
+## The AI factory
+
+How the factory pipeline works (GitHub, workflows, skills, subagents) is
+documented in [docs/factory/factory-process-guide.md](./docs/factory/factory-process-guide.md).
+Keep it fresh with the `docs-factory` skill whenever the pipeline changes.
+
 ## Filing GitHub issues
 
-When the user asks to create, write, file, open, draft, or log a GitHub issue —
-including terse one-liners like "write a gh issue" — you MUST invoke the
-`factory-issue` skill first, before doing anything else. Never run
-`gh issue create` (or otherwise file an issue) directly. Every issue in this
-repo feeds the AI factory pipeline and must use its format and labels, which the
-skill applies; a hand-rolled issue silently breaks that contract.
-
-This rule exists because Claude Code, by default, skips consulting a skill for
-tasks it judges trivial enough to do directly — and filing an issue looks
-trivial. This instruction overrides that default.
+To create, write, file, open, draft, or log a GitHub issue — including terse
+one-liners — you MUST invoke the `factory-issue` skill first. Never run
+`gh issue create` directly; it bypasses the format and labels the factory
+pipeline depends on.
 
 ## Work verification
 
