@@ -10,7 +10,7 @@ minimumReleaseAge = 604800
 minimumReleaseAgeExcludes = []
 
 [test]
-preload = ["./test/setup.bun.ts"]
+preload = ["./src/test/setup.bun.ts"]
 # Enable coverage with `bun test --coverage` (or set `coverage = true` to make
 # it the default). Reporters: "text" for stdout summary, "lcov" for coverage/lcov.info.
 coverageReporter = ["text", "lcov"]

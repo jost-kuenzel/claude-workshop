@@ -1,7 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
-import testLocation from "./eslint-rules/test-location.mjs";
+import testLocation from "./tools/eslint-rules/test-location.mjs";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
