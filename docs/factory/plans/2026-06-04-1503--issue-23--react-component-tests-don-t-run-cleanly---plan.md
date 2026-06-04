@@ -18,7 +18,7 @@ spec: docs/factory/specs/2026-06-04-1658--issue-23--vitest-component-testing--de
 - [x] Task 3: Migrate login page test to Vitest idioms
 - [x] Task 4: Update bun scripts, clean up preload, remove @happy-dom/global-registrator
 - [x] Task 5: Fix pre-existing tsc errors in auth.test.ts and simpsons.test.ts
-- [ ] Task 6: Add runner-selection rule and update CLAUDE.md
+- [x] Task 6: Add runner-selection rule and update CLAUDE.md
 
 ---
 
