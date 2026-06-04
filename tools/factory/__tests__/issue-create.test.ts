@@ -50,7 +50,7 @@ test("CLI --constraints flag is wired through to featureBody in dry-run output",
     [
       "bun",
       "run",
-      "scripts/factory/issue-create.ts",
+      "tools/factory/issue-create.ts",
       "--type",
       "feature",
       "--title",
@@ -63,7 +63,7 @@ test("CLI --constraints flag is wired through to featureBody in dry-run output",
       "no new deps",
       "--dry-run",
     ],
-    { cwd: import.meta.dir.replace(/\/scripts\/factory\/__tests__$/, ""), env: { ...process.env } }
+    { cwd: import.meta.dir.replace(/\/tools\/factory\/__tests__$/, ""), env: { ...process.env } }
   );
   const stdout = result.stdout.toString();
   expect(stdout).toContain("no new deps");
