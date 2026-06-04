@@ -61,6 +61,9 @@ Remove duplication, improve names, extract helpers — keeping tests green. Don'
 - Separate pure logic from I/O; unit-test the pure logic.
 - You implement exactly ONE task. Do not loop to other tasks.
 - Commit your own work with a clear message when green.
+- Run one command per Bash call (no `&&`/pipes), and use the native Read/Grep/Glob
+  tools instead of shell `cat`/`grep`/`find` — chained or out-of-surface commands are
+  rejected headlessly and waste turns.
 
 ## When stuck
 

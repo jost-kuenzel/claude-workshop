@@ -4,8 +4,9 @@ import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { runClaude } from "./claude";
 
-// Tool scope for plan generation: read the spec, write/commit the plan, and dispatch
-// the factory-plan-reviewer agent for the review loop. No branch/push/PR.
+// Tool scope for plan generation: explore the repo to map files, read the spec,
+// write/commit the plan, and dispatch the factory-plan-reviewer agent for the review
+// loop. Read-only shell inspection only — no file mutation, no branch/push/PR/gh.
 const PLAN_TOOLS = [
   "Read",
   "Write",
@@ -17,6 +18,8 @@ const PLAN_TOOLS = [
   "Bash(bun:*)",
   "Bash(git add:*)",
   "Bash(git commit:*)",
+  "Bash(git status:*)",
+  "Bash(ls:*)",
 ];
 
 const spec = Options.text("spec").pipe(Options.withDescription("Path to the committed spec file"));

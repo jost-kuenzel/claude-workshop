@@ -7,7 +7,7 @@ import { runClaude } from "./claude";
 import { parsePlan, firstUnchecked } from "./plan";
 import { reactIssueArgs, createPrArgs, issueCommentArgs, runGh } from "./github";
 import { buildPrompt as buildPlanPrompt, PLAN_TOOLS } from "./plan-gen";
-import { buildTaskPrompt } from "./task-run";
+import { buildTaskPrompt, TASK_TOOLS } from "./task-run";
 import { buildFinalizePrompt } from "./pr-finalize";
 import { slugify } from "./spec-author";
 
@@ -47,18 +47,6 @@ const runId = Options.text("run-id").pipe(
 const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
   Effect.gen(function* () {
     const dry = args.dryRun;
-    const TT = [
-      "Read",
-      "Edit",
-      "Write",
-      "Grep",
-      "Glob",
-      "Skill",
-      "Agent",
-      "Bash(bun:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-    ];
 
     // 1. immediate +1 reaction
     yield* Effect.promise(() => runGh(reactIssueArgs(args.issue, "+1"), { dryRun: dry }));
@@ -154,7 +142,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
             taskTitle: target.title,
             taskBody: target.body,
           }),
-          allowedTools: TT,
+          allowedTools: TASK_TOOLS,
           maxTurns: 50,
           permissionMode: "acceptEdits",
           runId: args.runId,

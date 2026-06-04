@@ -5,8 +5,13 @@ import { Effect, Option } from "effect";
 import { runClaude } from "./claude";
 import { parsePlan, firstUnchecked } from "./plan";
 
-// Task steps get Agent dispatch + git add/commit, but NEVER branch/worktree/push/PR.
-const TASK_TOOLS = [
+// Task steps get Agent dispatch + a local-only command surface: run tests/lint, move
+// and stage files, inspect the working tree. Intentionally EXCLUDED (the pipeline owns
+// the remote, and CI has no human to approve): `git push`, `gh`, `git reset --hard`,
+// raw `rm`/`cp`/`mv` (use `git mv`/`git rm` + Write instead), and network tools
+// (curl/wget) so an unsupervised or prompt-injected agent has nothing to exfiltrate to.
+// Prefer the native Read/Grep/Glob tools over shell `cat`/`grep`/`find`.
+export const TASK_TOOLS = [
   "Read",
   "Edit",
   "Write",
@@ -14,9 +19,23 @@ const TASK_TOOLS = [
   "Glob",
   "Skill",
   "Agent",
+  // tests + lint (the canonical `npm run test` / `npm run lint`, plus the eslint the
+  // agent reaches for directly)
   "Bash(bun:*)",
+  "Bash(npm run:*)",
+  "Bash(bunx eslint:*)",
+  "Bash(npx eslint:*)",
+  // local git: stage/commit, move/remove tracked files, read-only inspection
   "Bash(git add:*)",
   "Bash(git commit:*)",
+  "Bash(git mv:*)",
+  "Bash(git rm:*)",
+  "Bash(git status:*)",
+  "Bash(git diff:*)",
+  "Bash(git restore:*)",
+  // filesystem: create dirs + list (native Read/Grep/Glob preferred for everything else)
+  "Bash(mkdir:*)",
+  "Bash(ls:*)",
 ];
 
 const planPath = Options.text("plan").pipe(Options.withDescription("Plan file path"));
