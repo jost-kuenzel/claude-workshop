@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import testLocation from "./eslint-rules/test-location.mjs";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -13,6 +14,11 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    files: ["**/*.test.{ts,tsx}"],
+    plugins: { local: { rules: { "test-location": testLocation } } },
+    rules: { "local/test-location": "error" },
+  },
 ]);
 
 export default eslintConfig;
