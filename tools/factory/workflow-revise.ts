@@ -3,8 +3,8 @@ import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { runClaude } from "./claude";
-import { reactCommentArgs, issueCommentArgs, runGh } from "./github";
+import { runClaude } from "./lib/claude";
+import { reactCommentArgs, issueCommentArgs, runGh } from "./lib/github";
 
 const REVISE_CAP = 5;
 

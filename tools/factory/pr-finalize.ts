@@ -2,7 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runClaude } from "./claude";
+import { runClaude } from "./lib/claude";
 
 // Finalize may read history + the current PR, and edit the PR body. No branch/push/merge/worktree.
 const FINALIZE_TOOLS = [

@@ -2,7 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runGh, runProcess } from "./github";
+import { runGh, runProcess } from "./lib/github";
 
 export function slugify(title: string): string {
   return title

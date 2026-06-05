@@ -2,8 +2,8 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect, Option } from "effect";
-import { runClaude } from "./claude";
-import { parsePlan, firstUnchecked } from "./plan";
+import { runClaude } from "./lib/claude";
+import { parsePlan, firstUnchecked } from "./lib/plan";
 
 // Task steps get Agent dispatch + a local-only command surface: run tests/lint, move
 // and stage files, inspect the working tree. Intentionally EXCLUDED (the pipeline owns

@@ -2,7 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runClaude } from "./claude";
+import { runClaude } from "./lib/claude";
 
 // Tool scope for plan generation: explore the repo to map files, read the spec,
 // write/commit the plan, and dispatch the factory-plan-reviewer agent for the review
