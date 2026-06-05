@@ -11,6 +11,11 @@ minimumReleaseAgeExcludes = []
 
 [test]
 preload = ["./src/test/setup.bun.ts"]
+# React component tests (*.test.tsx) run under Vitest (happy-dom + `vi` globals),
+# not Bun's runner. Ignore them here so a bare `bun test` doesn't try to execute
+# them and fail with "document is not defined" / "describe is not defined".
+# Those tests run via `vitest run` (see the `test` script in package.json).
+pathIgnorePatterns = ["**/*.test.tsx"]
 # Enable coverage with `bun test --coverage` (or set `coverage = true` to make
 # it the default). Reporters: "text" for stdout summary, "lcov" for coverage/lcov.info.
 coverageReporter = ["text", "lcov"]
