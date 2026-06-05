@@ -36,6 +36,21 @@ describe("buildClaudeArgs", () => {
     expect(args).not.toContain("--model");
     expect(args).not.toContain("--max-turns");
     expect(args).not.toContain("--permission-mode");
+    expect(args).not.toContain("--disallowedTools");
+  });
+
+  test("emits --disallowedTools when a non-empty denylist is provided", () => {
+    const args = buildClaudeArgs({
+      prompt: "p",
+      allowedTools: ["Bash"],
+      disallowedTools: ["Bash(curl:*)", "Bash(git push:*)"],
+    });
+    expect(args[args.indexOf("--disallowedTools") + 1]).toBe("Bash(curl:*),Bash(git push:*)");
+  });
+
+  test("omits --disallowedTools when the denylist is empty", () => {
+    const args = buildClaudeArgs({ prompt: "p", allowedTools: ["Read"], disallowedTools: [] });
+    expect(args).not.toContain("--disallowedTools");
   });
 });
 

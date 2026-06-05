@@ -4,6 +4,11 @@ export interface ClaudeOptions {
   prompt: string;
   /** Tool allowlist for the top-level orchestrator (per-step scoping). */
   allowedTools: string[];
+  /**
+   * Tool denylist. Highest-precedence bucket — enforced even under
+   * `bypassPermissions`, where the allowlist is moot but deny still blocks.
+   */
+  disallowedTools?: string[];
   model?: string;
   maxTurns?: number;
   permissionMode?: string;
@@ -18,6 +23,8 @@ export interface ClaudeOptions {
 export function buildClaudeArgs(o: ClaudeOptions): string[] {
   const args = ["--print", "--output-format", "stream-json", "--verbose"];
   args.push("--allowedTools", o.allowedTools.join(","));
+  if (o.disallowedTools && o.disallowedTools.length > 0)
+    args.push("--disallowedTools", o.disallowedTools.join(","));
   if (o.model) args.push("--model", o.model);
   if (o.maxTurns !== undefined) args.push("--max-turns", String(o.maxTurns));
   if (o.permissionMode) args.push("--permission-mode", o.permissionMode);

@@ -5,40 +5,41 @@ import { Effect, Option } from "effect";
 import { runClaude } from "./lib/claude";
 import { parsePlan, firstUnchecked } from "./lib/plan";
 
-// Task steps get Agent dispatch + a local-only command surface: run tests/lint, move
-// and stage files, inspect the working tree. Intentionally EXCLUDED (the pipeline owns
-// the remote, and CI has no human to approve): `git push`, `gh`, `git reset --hard`,
-// raw `rm`/`cp`/`mv` (use `git mv`/`git rm` + Write instead), and network tools
-// (curl/wget) so an unsupervised or prompt-injected agent has nothing to exfiltrate to.
-// Prefer the native Read/Grep/Glob tools over shell `cat`/`grep`/`find`.
-export const TASK_TOOLS = [
-  "Read",
-  "Edit",
-  "Write",
-  "Grep",
-  "Glob",
-  "Skill",
-  "Agent",
-  // tests + lint (the canonical `npm run test` / `npm run lint`, plus the eslint the
-  // agent reaches for directly)
-  "Bash(bun:*)",
-  "Bash(npm run:*)",
-  "Bash(bunx eslint:*)",
-  "Bash(npx eslint:*)",
-  // local git: stage/commit, move/remove tracked files, read-only inspection
-  "Bash(git add:*)",
-  "Bash(git commit:*)",
-  "Bash(git mv:*)",
-  "Bash(git rm:*)",
-  "Bash(git status:*)",
-  "Bash(git diff:*)",
-  "Bash(git restore:*)",
-  // filesystem: create dirs + list (native Read/Grep/Glob preferred for everything else)
-  "Bash(mkdir:*)",
-  "Bash(ls:*)",
-  // read-only text filter, so piping test/lint output through grep (e.g. `bun test | grep`)
-  // doesn't trip the per-segment approval check on compound commands
-  "Bash(grep:*)",
+// The task step runs under `bypassPermissions` (the no-rule-matched fallthrough is
+// "allow"), so we no longer hand-maintain a treadmill of `Bash()` sub-patterns: any
+// build/test/git command the agent reaches for just runs, UNLESS TASK_DENY claws it
+// back. This list is therefore an advisory record of the surface the step actually
+// uses; the enforced guardrail is TASK_DENY below. Prefer native Read/Grep/Glob over
+// shell `cat`/`grep`/`find`.
+export const TASK_TOOLS = ["Read", "Edit", "Write", "Grep", "Glob", "Skill", "Agent", "Bash"];
+
+// Enforced denylist for the otherwise-unrestricted task step. `deny` is the
+// highest-precedence bucket, so these hold even under `bypassPermissions`. They
+// target the only two things an unsupervised or prompt-injected agent could do real
+// damage with: network egress (exfiltration) and remote/history mutation + destructive
+// fs. The orchestrator owns the remote — it pushes via `git` directly, outside Claude's
+// tool surface — so the agent never legitimately needs `git push`. Read-only `gh pr`
+// stays available; only the credential/repo-admin gh subcommands are denied.
+export const TASK_DENY = [
+  // network egress — cut the exfiltration channel
+  "Bash(curl:*)",
+  "Bash(wget:*)",
+  "Bash(nc:*)",
+  "Bash(ncat:*)",
+  "Bash(telnet:*)",
+  "Bash(ssh:*)",
+  "Bash(scp:*)",
+  "Bash(sftp:*)",
+  // remote + history rewrite (the orchestrator owns the remote)
+  "Bash(git push:*)",
+  "Bash(git reset --hard:*)",
+  // destructive fs + privilege escalation (use `git rm` / Write instead)
+  "Bash(rm:*)",
+  "Bash(sudo:*)",
+  // credential / repo-admin gh surface
+  "Bash(gh auth:*)",
+  "Bash(gh secret:*)",
+  "Bash(gh repo delete:*)",
 ];
 
 const planPath = Options.text("plan").pipe(Options.withDescription("Plan file path"));
@@ -107,8 +108,9 @@ const command = Command.make("task-run", { planPath, specPath, taskIndex, runId 
           taskBody: target.body,
         }),
         allowedTools: TASK_TOOLS,
+        disallowedTools: TASK_DENY,
         maxTurns: 50,
-        permissionMode: "acceptEdits",
+        permissionMode: "bypassPermissions",
         runId: args.runId,
         step: `task-${target.index}`,
       })

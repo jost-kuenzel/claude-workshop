@@ -7,7 +7,7 @@ import { runClaude } from "./lib/claude";
 import { parsePlan, firstUnchecked } from "./lib/plan";
 import { reactIssueArgs, createPrArgs, issueCommentArgs, runGh } from "./lib/github";
 import { buildPrompt as buildPlanPrompt, PLAN_TOOLS } from "./plan-gen";
-import { buildTaskPrompt, TASK_TOOLS } from "./task-run";
+import { buildTaskPrompt, TASK_TOOLS, TASK_DENY } from "./task-run";
 import { buildFinalizePrompt } from "./pr-finalize";
 import { slugify } from "./spec-author";
 
@@ -167,8 +167,9 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
             taskBody: target.body,
           }),
           allowedTools: TASK_TOOLS,
+          disallowedTools: TASK_DENY,
           maxTurns: 50,
-          permissionMode: "acceptEdits",
+          permissionMode: "bypassPermissions",
           runId: args.runId,
           step: `task-${target.index}`,
           label: `Task ${target.index}: ${target.title}`,
