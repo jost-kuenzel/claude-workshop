@@ -19,7 +19,7 @@ After having finished implementing a feature ALWAYS verify your work. Leave only
 steps to verify for the user that you cannot accomplish yourself. Use provided
 tools as these:
 
-- `npm run test` to run unittests
-- `npm run lint` to lint the code
-- `npm run typecheck` to check types
+- `bun run test` to run unittests
+- `bun run lint` to lint the code
+- `bun run typecheck` to check types
 - If installed and applicable use `playwright-cli` to test the

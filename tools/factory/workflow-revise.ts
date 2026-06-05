@@ -2,7 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { runClaude } from "./claude";
 import { reactCommentArgs, issueCommentArgs, runGh } from "./github";
 
@@ -68,7 +68,12 @@ const command = Command.make("workflow-revise", { pr, commentId, dryRun, runId }
     const counterFile = `.factory/revise-count-${args.pr}.txt`;
     const current = existsSync(counterFile) ? Number(readFileSync(counterFile, "utf8")) || 0 : 0;
     const count = nextReviseCount(current);
-    if (!dry) writeFileSync(counterFile, String(count));
+    // `.factory/` is gitignored and absent from a fresh CI checkout; writeFileSync
+    // does not create parent dirs, so create it before writing the counter file.
+    if (!dry) {
+      mkdirSync(".factory", { recursive: true });
+      writeFileSync(counterFile, String(count));
+    }
     if (isOverCap(count)) {
       yield* Effect.promise(() =>
         runGh(issueCommentArgs(args.pr, `iteration cap of ${REVISE_CAP} reached for this PR`), {
