@@ -2,13 +2,13 @@ import { mkdir } from "node:fs/promises";
 
 export interface ClaudeOptions {
   prompt: string;
-  /** Tool allowlist for the top-level orchestrator (per-step scoping). */
-  allowedTools: string[];
   /**
-   * Tool denylist. Highest-precedence bucket — enforced even under
-   * `bypassPermissions`, where the allowlist is moot but deny still blocks.
+   * Tool allowlist (per-step scoping). Omitted under {@link CI_SANDBOX}, where the
+   * OS sandbox is the boundary and `bypassPermissions` makes the allowlist moot.
    */
-  disallowedTools?: string[];
+  allowedTools?: string[];
+  /** Path to a settings JSON file (`--settings`); layered over `.claude/settings.json`. */
+  settings?: string;
   model?: string;
   maxTurns?: number;
   permissionMode?: string;
@@ -19,12 +19,23 @@ export interface ClaudeOptions {
   label?: string;
 }
 
+/**
+ * Shared CI invocation profile: OS-sandboxed bash + bypassed permission prompts.
+ * The sandbox config (`tools/factory/ci.settings.json`) is the real boundary —
+ * network egress is blocked at the OS proxy — so steps need no per-tool allow/deny
+ * lists. Local runs that don't spread this in stay completely unrestricted.
+ */
+export const CI_SANDBOX = {
+  settings: "tools/factory/ci.settings.json",
+  permissionMode: "bypassPermissions",
+} as const;
+
 /** Pure: build the argv passed to the `claude` binary (binary name excluded). */
 export function buildClaudeArgs(o: ClaudeOptions): string[] {
   const args = ["--print", "--output-format", "stream-json", "--verbose"];
-  args.push("--allowedTools", o.allowedTools.join(","));
-  if (o.disallowedTools && o.disallowedTools.length > 0)
-    args.push("--disallowedTools", o.disallowedTools.join(","));
+  if (o.allowedTools && o.allowedTools.length > 0)
+    args.push("--allowedTools", o.allowedTools.join(","));
+  if (o.settings) args.push("--settings", o.settings);
   if (o.model) args.push("--model", o.model);
   if (o.maxTurns !== undefined) args.push("--max-turns", String(o.maxTurns));
   if (o.permissionMode) args.push("--permission-mode", o.permissionMode);

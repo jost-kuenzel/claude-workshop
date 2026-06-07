@@ -2,45 +2,8 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect, Option } from "effect";
-import { runClaude } from "./lib/claude";
+import { runClaude, CI_SANDBOX } from "./lib/claude";
 import { parsePlan, firstUnchecked } from "./lib/plan";
-
-// The task step runs under `bypassPermissions` (the no-rule-matched fallthrough is
-// "allow"), so we no longer hand-maintain a treadmill of `Bash()` sub-patterns: any
-// build/test/git command the agent reaches for just runs, UNLESS TASK_DENY claws it
-// back. This list is therefore an advisory record of the surface the step actually
-// uses; the enforced guardrail is TASK_DENY below. Prefer native Read/Grep/Glob over
-// shell `cat`/`grep`/`find`.
-export const TASK_TOOLS = ["Read", "Edit", "Write", "Grep", "Glob", "Skill", "Agent", "Bash"];
-
-// Enforced denylist for the otherwise-unrestricted task step. `deny` is the
-// highest-precedence bucket, so these hold even under `bypassPermissions`. They
-// target the only two things an unsupervised or prompt-injected agent could do real
-// damage with: network egress (exfiltration) and remote/history mutation + destructive
-// fs. The orchestrator owns the remote — it pushes via `git` directly, outside Claude's
-// tool surface — so the agent never legitimately needs `git push`. Read-only `gh pr`
-// stays available; only the credential/repo-admin gh subcommands are denied.
-export const TASK_DENY = [
-  // network egress — cut the exfiltration channel
-  "Bash(curl:*)",
-  "Bash(wget:*)",
-  "Bash(nc:*)",
-  "Bash(ncat:*)",
-  "Bash(telnet:*)",
-  "Bash(ssh:*)",
-  "Bash(scp:*)",
-  "Bash(sftp:*)",
-  // remote + history rewrite (the orchestrator owns the remote)
-  "Bash(git push:*)",
-  "Bash(git reset --hard:*)",
-  // destructive fs + privilege escalation (use `git rm` / Write instead)
-  "Bash(rm:*)",
-  "Bash(sudo:*)",
-  // credential / repo-admin gh surface
-  "Bash(gh auth:*)",
-  "Bash(gh secret:*)",
-  "Bash(gh repo delete:*)",
-];
 
 const planPath = Options.text("plan").pipe(Options.withDescription("Plan file path"));
 const specPath = Options.text("spec").pipe(Options.withDefault(""));
@@ -107,10 +70,8 @@ const command = Command.make("task-run", { planPath, specPath, taskIndex, runId 
           taskTitle: target.title,
           taskBody: target.body,
         }),
-        allowedTools: TASK_TOOLS,
-        disallowedTools: TASK_DENY,
+        ...CI_SANDBOX,
         maxTurns: 50,
-        permissionMode: "bypassPermissions",
         runId: args.runId,
         step: `task-${target.index}`,
       })

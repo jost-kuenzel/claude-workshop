@@ -1,6 +1,7 @@
 import { test, expect, describe } from "bun:test";
 import {
   buildClaudeArgs,
+  CI_SANDBOX,
   resolveAuthEnv,
   logPath,
   extractResult,
@@ -36,21 +37,14 @@ describe("buildClaudeArgs", () => {
     expect(args).not.toContain("--model");
     expect(args).not.toContain("--max-turns");
     expect(args).not.toContain("--permission-mode");
-    expect(args).not.toContain("--disallowedTools");
+    expect(args).not.toContain("--settings");
   });
 
-  test("emits --disallowedTools when a non-empty denylist is provided", () => {
-    const args = buildClaudeArgs({
-      prompt: "p",
-      allowedTools: ["Bash"],
-      disallowedTools: ["Bash(curl:*)", "Bash(git push:*)"],
-    });
-    expect(args[args.indexOf("--disallowedTools") + 1]).toBe("Bash(curl:*),Bash(git push:*)");
-  });
-
-  test("omits --disallowedTools when the denylist is empty", () => {
-    const args = buildClaudeArgs({ prompt: "p", allowedTools: ["Read"], disallowedTools: [] });
-    expect(args).not.toContain("--disallowedTools");
+  test("emits --settings and omits --allowedTools under the sandbox profile", () => {
+    const args = buildClaudeArgs({ prompt: "p", ...CI_SANDBOX });
+    expect(args).not.toContain("--allowedTools"); // sandbox is the boundary, not a list
+    expect(args[args.indexOf("--settings") + 1]).toBe("tools/factory/ci.settings.json");
+    expect(args[args.indexOf("--permission-mode") + 1]).toBe("bypassPermissions");
   });
 });
 

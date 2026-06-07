@@ -2,25 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runClaude } from "./lib/claude";
-
-// Tool scope for plan generation: explore the repo to map files, read the spec,
-// write/commit the plan, and dispatch the factory-plan-reviewer agent for the review
-// loop. Read-only shell inspection only — no file mutation, no branch/push/PR/gh.
-const PLAN_TOOLS = [
-  "Read",
-  "Write",
-  "Edit",
-  "Grep",
-  "Glob",
-  "Skill",
-  "Agent",
-  "Bash(bun:*)",
-  "Bash(git add:*)",
-  "Bash(git commit:*)",
-  "Bash(git status:*)",
-  "Bash(ls:*)",
-];
+import { runClaude, CI_SANDBOX } from "./lib/claude";
 
 const spec = Options.text("spec").pipe(Options.withDescription("Path to the committed spec file"));
 const planPath = Options.text("plan").pipe(Options.withDescription("Output plan file path"));
@@ -43,15 +25,14 @@ function buildPrompt(specPath: string, plan: string, issueNumber: number): strin
   ].join("\n");
 }
 
-export { buildPrompt, PLAN_TOOLS };
+export { buildPrompt };
 
 const command = Command.make("plan-gen", { spec, planPath, issue, runId }, (args) =>
   Effect.promise(() =>
     runClaude({
       prompt: buildPrompt(args.spec, args.planPath, args.issue),
-      allowedTools: PLAN_TOOLS,
+      ...CI_SANDBOX,
       maxTurns: 50,
-      permissionMode: "acceptEdits",
       runId: args.runId,
       step: "plan-gen",
     })
