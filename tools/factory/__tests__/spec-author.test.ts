@@ -6,6 +6,7 @@ import {
   viewIssueArgs,
   commitSpecArgs,
   issueFromSpecPath,
+  truncateSlug,
 } from "../spec-author";
 import { validateSpecFrontmatter } from "../../hooks/factory-spec-frontmatter";
 
@@ -70,4 +71,36 @@ test("issueFromSpecPath throws when path lacks --issue-N-- segment", () => {
   expect(() => issueFromSpecPath("docs/factory/specs/no-issue-here.md")).toThrow(
     "cannot find --issue-N-- in spec path"
   );
+});
+
+test("truncateSlug returns slug unchanged when shorter than max", () => {
+  expect(truncateSlug("short", 40)).toBe("short");
+});
+
+test("truncateSlug slices to max when no trailing hyphen", () => {
+  expect(truncateSlug("abcde", 3)).toBe("abc");
+});
+
+test("truncateSlug strips trailing hyphen after slice", () => {
+  // "ab-cd".slice(0, 3) = "ab-" → strip → "ab"
+  expect(truncateSlug("ab-cd", 3)).toBe("ab");
+});
+
+test("truncateSlug strips multiple trailing hyphens", () => {
+  // "a---b".slice(0, 3) = "a--" → strip → "a"
+  expect(truncateSlug("a---b", 3)).toBe("a");
+});
+
+test("truncateSlug default max=40 cuts >40-char slug to ≤40 chars with no trailing hyphen", () => {
+  const long = "a".repeat(39) + "-" + "b".repeat(10); // 50 chars; char 40 is '-'
+  const result = truncateSlug(long);
+  expect(result.length).toBeLessThanOrEqual(40);
+  expect(result.endsWith("-")).toBe(false);
+});
+
+test("truncateSlug with exactly max chars and 40th char a hyphen strips it", () => {
+  // build a 41-char string where index 39 (0-based) is '-'
+  const s = "a".repeat(39) + "-x";
+  const result = truncateSlug(s, 40);
+  expect(result).toBe("a".repeat(39));
 });

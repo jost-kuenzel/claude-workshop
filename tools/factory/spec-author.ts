@@ -11,6 +11,10 @@ export function slugify(title: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function truncateSlug(slug: string, max = 40): string {
+  return slug.slice(0, max).replace(/-+$/, "");
+}
+
 export function specFilename(stamp: string, issue: number, slug: string): string {
   return `docs/factory/specs/${stamp}--issue-${issue}--${slug}--design.md`;
 }
