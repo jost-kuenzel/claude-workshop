@@ -52,5 +52,9 @@ CLAUDE.local.md
 # ai factory runtime state
 .factory/
 
+# playwright-cli runtime (sessions, snapshots, local config)
+.playwright/
+.playwright-cli/
+
 # bun
 bun.lockb
