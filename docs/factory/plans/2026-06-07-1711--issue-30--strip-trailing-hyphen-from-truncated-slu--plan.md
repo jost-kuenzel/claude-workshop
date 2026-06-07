@@ -14,7 +14,7 @@ spec: docs/factory/specs/2026-06-07-1808--issue-30--strip-trailing-hyphen-from-s
 ## Task Checklist
 
 - [x] Task 1: Add `truncateSlug` to `spec-author.ts` with tests
-- [ ] Task 2: Wire `truncateSlug` into `workflow-go.ts`
+- [x] Task 2: Wire `truncateSlug` into `workflow-go.ts`
 
 ---
 
