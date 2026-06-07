@@ -3,11 +3,11 @@ import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { Glob } from "bun";
-import { runClaude } from "./claude";
-import { parsePlan, firstUnchecked } from "./plan";
-import { reactIssueArgs, createPrArgs, issueCommentArgs, runGh } from "./github";
-import { buildPrompt as buildPlanPrompt, PLAN_TOOLS } from "./plan-gen";
-import { buildTaskPrompt, TASK_TOOLS } from "./task-run";
+import { runClaude, CI_SANDBOX } from "./lib/claude";
+import { parsePlan, firstUnchecked } from "./lib/plan";
+import { reactIssueArgs, createPrArgs, issueCommentArgs, runGh } from "./lib/github";
+import { buildPrompt as buildPlanPrompt } from "./plan-gen";
+import { buildTaskPrompt } from "./task-run";
 import { buildFinalizePrompt } from "./pr-finalize";
 import { slugify } from "./spec-author";
 
@@ -136,9 +136,8 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
     yield* Effect.promise(() =>
       runClaude({
         prompt: buildPlanPrompt(specPath, planPath, args.issue),
-        allowedTools: PLAN_TOOLS,
+        ...CI_SANDBOX,
         maxTurns: 50,
-        permissionMode: "acceptEdits",
         runId: args.runId,
         step: "plan-gen",
         label: "Plan generation",
@@ -166,9 +165,8 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
             taskTitle: target.title,
             taskBody: target.body,
           }),
-          allowedTools: TASK_TOOLS,
+          ...CI_SANDBOX,
           maxTurns: 50,
-          permissionMode: "acceptEdits",
           runId: args.runId,
           step: `task-${target.index}`,
           label: `Task ${target.index}: ${target.title}`,
@@ -204,16 +202,8 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
       yield* Effect.promise(() =>
         runClaude({
           prompt: buildFinalizePrompt(prNumber, planPath),
-          allowedTools: [
-            "Read",
-            "Grep",
-            "Glob",
-            "Bash(git log:*)",
-            "Bash(gh pr view:*)",
-            "Bash(gh pr edit:*)",
-          ],
+          ...CI_SANDBOX,
           maxTurns: 20,
-          permissionMode: "acceptEdits",
           runId: args.runId,
           step: "pr-finalize",
           label: "Finalize PR",

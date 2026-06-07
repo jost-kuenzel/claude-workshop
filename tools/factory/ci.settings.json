@@ -1,0 +1,9 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": ["api.github.com", "github.com", "*.npmjs.org"]
+    }
+  }
+}

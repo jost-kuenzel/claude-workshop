@@ -3,8 +3,8 @@ import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { runClaude } from "./claude";
-import { reactCommentArgs, issueCommentArgs, runGh } from "./github";
+import { runClaude, CI_SANDBOX } from "./lib/claude";
+import { reactCommentArgs, issueCommentArgs, runGh } from "./lib/github";
 
 const REVISE_CAP = 5;
 
@@ -14,20 +14,6 @@ export function nextReviseCount(current: number): number {
 export function isOverCap(count: number): boolean {
   return count > REVISE_CAP;
 }
-
-// Revise may edit code and commit; never branch/worktree/push (push handled by shell)/PR.
-const REVISE_TOOLS = [
-  "Read",
-  "Edit",
-  "Write",
-  "Grep",
-  "Glob",
-  "Skill",
-  "Agent",
-  "Bash(bun:*)",
-  "Bash(git add:*)",
-  "Bash(git commit:*)",
-];
 
 const pr = Options.integer("pr").pipe(Options.withDefault(Number(process.env.PR_NUMBER)));
 const commentId = Options.integer("comment-id").pipe(
@@ -103,9 +89,8 @@ const command = Command.make("workflow-revise", { pr, commentId, dryRun, runId }
     yield* Effect.promise(() =>
       runClaude({
         prompt: buildRevisePrompt(args.pr, feedback || "(address the latest review comments)"),
-        allowedTools: REVISE_TOOLS,
+        ...CI_SANDBOX,
         maxTurns: 30,
-        permissionMode: "acceptEdits",
         runId: args.runId,
         step: "revise",
         label: `Revise PR #${args.pr}`,

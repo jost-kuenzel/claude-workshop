@@ -2,44 +2,8 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect, Option } from "effect";
-import { runClaude } from "./claude";
-import { parsePlan, firstUnchecked } from "./plan";
-
-// Task steps get Agent dispatch + a local-only command surface: run tests/lint, move
-// and stage files, inspect the working tree. Intentionally EXCLUDED (the pipeline owns
-// the remote, and CI has no human to approve): `git push`, `gh`, `git reset --hard`,
-// raw `rm`/`cp`/`mv` (use `git mv`/`git rm` + Write instead), and network tools
-// (curl/wget) so an unsupervised or prompt-injected agent has nothing to exfiltrate to.
-// Prefer the native Read/Grep/Glob tools over shell `cat`/`grep`/`find`.
-export const TASK_TOOLS = [
-  "Read",
-  "Edit",
-  "Write",
-  "Grep",
-  "Glob",
-  "Skill",
-  "Agent",
-  // tests + lint (the canonical `npm run test` / `npm run lint`, plus the eslint the
-  // agent reaches for directly)
-  "Bash(bun:*)",
-  "Bash(npm run:*)",
-  "Bash(bunx eslint:*)",
-  "Bash(npx eslint:*)",
-  // local git: stage/commit, move/remove tracked files, read-only inspection
-  "Bash(git add:*)",
-  "Bash(git commit:*)",
-  "Bash(git mv:*)",
-  "Bash(git rm:*)",
-  "Bash(git status:*)",
-  "Bash(git diff:*)",
-  "Bash(git restore:*)",
-  // filesystem: create dirs + list (native Read/Grep/Glob preferred for everything else)
-  "Bash(mkdir:*)",
-  "Bash(ls:*)",
-  // read-only text filter, so piping test/lint output through grep (e.g. `bun test | grep`)
-  // doesn't trip the per-segment approval check on compound commands
-  "Bash(grep:*)",
-];
+import { runClaude, CI_SANDBOX } from "./lib/claude";
+import { parsePlan, firstUnchecked } from "./lib/plan";
 
 const planPath = Options.text("plan").pipe(Options.withDescription("Plan file path"));
 const specPath = Options.text("spec").pipe(Options.withDefault(""));
@@ -106,9 +70,8 @@ const command = Command.make("task-run", { planPath, specPath, taskIndex, runId 
           taskTitle: target.title,
           taskBody: target.body,
         }),
-        allowedTools: TASK_TOOLS,
+        ...CI_SANDBOX,
         maxTurns: 50,
-        permissionMode: "acceptEdits",
         runId: args.runId,
         step: `task-${target.index}`,
       })

@@ -2,7 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runGh } from "./github";
+import { runGh } from "./lib/github";
 
 export type IssueType = "feature" | "bug";
 

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash tools/scripts/lint-fix.sh"
+            "command": "bun tools/hooks/lint-fix.ts"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun .claude/hooks/factory-spec-frontmatter.ts"
+            "command": "bun tools/hooks/factory-spec-frontmatter.ts"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun .claude/hooks/factory-test-gate.ts"
+            "command": "bun tools/hooks/factory-test-gate.ts"
           }
         ]
       }

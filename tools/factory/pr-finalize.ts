@@ -2,17 +2,7 @@
 import { Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { runClaude } from "./claude";
-
-// Finalize may read history + the current PR, and edit the PR body. No branch/push/merge/worktree.
-const FINALIZE_TOOLS = [
-  "Read",
-  "Grep",
-  "Glob",
-  "Bash(git log:*)",
-  "Bash(gh pr view:*)",
-  "Bash(gh pr edit:*)",
-];
+import { runClaude, CI_SANDBOX } from "./lib/claude";
 
 const pr = Options.integer("pr").pipe(Options.withDescription("PR number"));
 const planPath = Options.text("plan");
@@ -31,9 +21,8 @@ const command = Command.make("pr-finalize", { pr, planPath, runId }, (args) =>
   Effect.promise(() =>
     runClaude({
       prompt: buildFinalizePrompt(args.pr, args.planPath),
-      allowedTools: FINALIZE_TOOLS,
+      ...CI_SANDBOX,
       maxTurns: 20,
-      permissionMode: "acceptEdits",
       runId: args.runId,
       step: "pr-finalize",
     })
