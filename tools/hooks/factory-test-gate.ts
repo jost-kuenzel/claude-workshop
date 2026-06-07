@@ -63,7 +63,11 @@ if (import.meta.main) {
   const attempts = existsSync(counterFile) ? Number(readFileSync(counterFile, "utf8")) || 0 : 0;
 
   const lint = await run(["bun", "run", "lint"]);
-  const tests = await run(["bun", "test"]);
+  // `bun run test` runs BOTH suites: the scoped `bun test src/… tools` and `vitest run`.
+  // A bare `bun test` would instead glob `**/*.test.{ts,tsx}` and try to execute the
+  // Vitest-only `*.test.tsx` component tests under Bun's runner (no happy-dom/`vi`),
+  // failing the gate forever and sending the implementer chasing ghosts.
+  const tests = await run(["bun", "run", "test"]);
   const stderrTail = (lint.output + "\n" + tests.output).slice(-4096);
 
   const decision = decideGate({

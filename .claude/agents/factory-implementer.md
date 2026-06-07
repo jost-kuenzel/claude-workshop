@@ -25,7 +25,10 @@ tools is a dead end that wastes a turn. Stay inside the surface:
   rejected as a whole even when each part would be allowed alone.
 - Move or delete tracked files with **`git mv`** / **`git rm`** (then `git add`), not
   `mv`/`cp`/`rm`. Create files with **Write**, directories with **`mkdir`**.
-- Run tests and lint with `bun test <path>`, `npm run test`, `npm run lint`.
+- Drive a single new test with `bun test <path>` (a `.test.ts`) or `bun run test:components`
+  (a `.test.tsx`). Verify the WHOLE suite with `bun run test` (runs both the Bun and Vitest
+  suites) and lint with `bun run lint`. Never run a bare `bun test`: it globs `**/*.test.tsx`
+  and executes the Vitest-only component tests under Bun, which fail spuriously.
 - You have no `git push`, `gh`, or network access — never attempt them; the pipeline
   owns push/PR. If you truly need something outside this surface, report NEEDS_CONTEXT
   rather than retrying variations of a blocked command.

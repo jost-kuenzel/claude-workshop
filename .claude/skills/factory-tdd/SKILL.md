@@ -11,7 +11,11 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
-This repo runs Bun. Use `bun test <path>` to run tests and `import { test, expect, describe } from "bun:test"`.
+This repo runs Bun. Drive a single test with `bun test <path>` (a `.test.ts`, using
+`import { test, expect, describe } from "bun:test"`) or `bun run test:components` (a
+`.test.tsx`). Verify the whole suite with `bun run test` (it runs both the Bun and Vitest
+suites). **Never run a bare `bun test`** — it globs `**/*.test.tsx` and executes the
+Vitest-only component tests under Bun's runner, which fail spuriously.
 
 ## The Iron Law
 
@@ -50,7 +54,8 @@ Write the simplest code that passes. No extra features (YAGNI).
 
 ### Verify GREEN — watch it pass
 
-Run `bun test <path>`. Confirm this test and all others pass with pristine output.
+Run `bun test <path>` for this test, then `bun run test` to confirm it and all others pass
+with pristine output.
 
 ### REFACTOR
 
