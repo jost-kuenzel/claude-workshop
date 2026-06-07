@@ -9,7 +9,7 @@ import { reactIssueArgs, createPrArgs, issueCommentArgs, runGh } from "./lib/git
 import { buildPrompt as buildPlanPrompt } from "./plan-gen";
 import { buildTaskPrompt } from "./task-run";
 import { buildFinalizePrompt } from "./pr-finalize";
-import { slugify } from "./spec-author";
+import { slugify, truncateSlug } from "./spec-author";
 
 /** Pure: format a Date as YYYY-MM-DD-HHMM (local-time components; UTC in CI), matching `date +%Y-%m-%d-%H%M`. */
 export function stampNow(d: Date = new Date()): string {
@@ -93,7 +93,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
         dryRun: dry,
       })
     );
-    const slug = slugify(title || `issue-${args.issue}`).slice(0, 40);
+    const slug = truncateSlug(slugify(title || `issue-${args.issue}`));
     const branch = `factory/issue-${args.issue}--${slug}`;
     // Compute the stamp once so the plan path is stable for the whole run.
     const planPath = planFilename(stampNow(), args.issue, slug);
