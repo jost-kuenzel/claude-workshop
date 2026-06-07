@@ -29,10 +29,14 @@ jobs:
         with:
           ref: refs/pull/${{ github.event.issue.number }}/head
       - uses: oven-sh/setup-bun@v2
-      # OS sandbox backend for the Claude steps. Needs BOTH bubblewrap (process/fs
-      # isolation) and socat (the localhost network proxy). If either is missing the
-      # sandbox can't initialize and Claude silently falls back to running UNSANDBOXED.
-      - run: sudo apt-get update && sudo apt-get install -y bubblewrap socat
+      # OS sandbox backend for the Claude steps. Needs bubblewrap (process/fs isolation)
+      # + socat (localhost network proxy). On ubuntu-24.04 the default AppArmor policy
+      # (kernel.apparmor_restrict_unprivileged_userns=1) blocks bwrap from configuring
+      # its network namespace's loopback (RTM_NEWADDR EPERM), so relax it for this
+      # ephemeral runner. Without this the sandbox can't init and commands fail closed.
+      - run: |
+          sudo apt-get update && sudo apt-get install -y bubblewrap socat
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
