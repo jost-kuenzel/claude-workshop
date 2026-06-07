@@ -29,9 +29,10 @@ jobs:
         with:
           ref: refs/pull/${{ github.event.issue.number }}/head
       - uses: oven-sh/setup-bun@v2
-      # OS sandbox backend for the Claude steps (tools/factory/ci.settings.json sets
-      # sandbox.allowUnsandboxedCommands=false, so a missing bwrap would fail every command).
-      - run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      # OS sandbox backend for the Claude steps. Needs BOTH bubblewrap (process/fs
+      # isolation) and socat (the localhost network proxy). If either is missing the
+      # sandbox can't initialize and Claude silently falls back to running UNSANDBOXED.
+      - run: sudo apt-get update && sudo apt-get install -y bubblewrap socat
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
