@@ -1,0 +1,66 @@
+schemaVersion: 1
+kind: mixin
+name: nektos-act
+displayName: nektos/act
+description: |
+  Installs nektos/act onto $PATH inside an sbx sandbox so GitHub Actions
+  workflows (.github/workflows/*.yml) can be run locally. act drives the
+  sandbox's Docker daemon to spin up per-job runner containers.
+
+  Designed for runtime injection (`sbx kit add`) where the agent runs as a
+  non-root user: nothing here needs root. The installer drops act into
+  ~/.local/bin (writable, on PATH) and writes ~/.actrc.
+
+  Defaults to linux/arm64 runner containers (native on Apple Silicon). amd64
+  emulation is unavailable in this sbx Docker environment.
+
+# File written before the startup commands run. /tmp is world-writable, so the
+# non-root agent can always create it (unlike /opt or /usr/local).
+commands:
+  initFiles:
+    - path: /tmp/act-install.sh
+      mode: "0755"
+      content: |
+        #!/usr/bin/env bash
+        # Idempotent installer for nektos/act, run on sandbox startup.
+        # No root required: installs into ~/.local/bin and writes ~/.actrc.
+        set -euo pipefail
+
+        # 1. Install act if missing. ~/.local/bin is first on the agent's PATH.
+        if command -v act >/dev/null 2>&1; then
+          echo "==> act already present: $(command -v act) ($(act --version 2>/dev/null))"
+        else
+          echo "==> installing nektos/act..."
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://raw.githubusercontent.com/nektos/act/master/install.sh \
+            | bash -s -- -b "$HOME/.local/bin"
+          echo "==> act installed: $(act --version)"
+        fi
+
+        # 2. Always (re)write a default .actrc so `act` never prompts for an
+        # image size. Runs containers as linux/arm64 — native on this Apple
+        # Silicon box. amd64 emulation is NOT available in this sbx Docker
+        # environment (binfmt_misc isn't persistently registrable for the
+        # daemon), so amd64 jobs would die with "exec format error".
+        # Override per run with `act --container-architecture linux/amd64`
+        # only once binfmt/QEMU is enabled at the Docker host level.
+        cat > "$HOME/.actrc" <<'RC'
+        -P ubuntu-latest=catthehacker/ubuntu:act-latest
+        -P ubuntu-24.04=catthehacker/ubuntu:act-24.04
+        -P ubuntu-22.04=catthehacker/ubuntu:act-22.04
+        --container-architecture linux/arm64
+        RC
+        echo "==> wrote $HOME/.actrc"
+
+  startup:
+    - command: ["bash", "/tmp/act-install.sh"]
+
+# Egress the installer needs to fetch the act release from GitHub.
+# (Runner images that act pulls at *run* time go through the Docker
+# daemon, not this list.)
+network:
+  allowedDomains:
+    - raw.githubusercontent.com      # install.sh entry point
+    - github.com                     # release redirect
+    - api.github.com                 # latest-release lookup
+    - objects.githubusercontent.com  # GitHub release asset CDN
