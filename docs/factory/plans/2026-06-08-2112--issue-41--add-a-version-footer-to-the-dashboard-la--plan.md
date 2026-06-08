@@ -13,7 +13,7 @@ spec: docs/factory/specs/2026-06-08-1802--issue-41--dashboard-version-footer--de
 
 ## Task Checklist
 
-- [ ] Task 1: Add footer to dashboard layout with component test
+- [x] Task 1: Add footer to dashboard layout with component test
 - [ ] Task 2: Capture screenshot evidence
 
 ---
