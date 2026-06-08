@@ -25,9 +25,15 @@ jobs:
       PR_NUMBER: ${{ github.event.issue.number }}
       COMMENT_ID: ${{ github.event.comment.id }}
     steps:
+      # issue_comment events don't expose the PR head branch, so resolve it from
+      # the PR and check that branch out by name. Checking out refs/pull/N/head
+      # leaves a detached HEAD, from which `git push` cannot update the branch —
+      # the revise commit would be silently stranded.
+      - id: prbranch
+        run: echo "name=$(gh pr view "$PR_NUMBER" -R "$GITHUB_REPOSITORY" --json headRefName -q .headRefName)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
+          ref: ${{ steps.prbranch.outputs.name }}
       - uses: oven-sh/setup-bun@v2
       # OS sandbox backend for the Claude steps. Needs bubblewrap (process/fs isolation)
       # + socat (localhost network proxy). On ubuntu-24.04 the default AppArmor policy
