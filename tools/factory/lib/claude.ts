@@ -106,6 +106,20 @@ export function truncate(s: string, n: number): string {
   return oneLine.length > n ? oneLine.slice(0, n - 1) + "…" : oneLine;
 }
 
+/**
+ * Pure: format a millisecond duration as HH:MM:SS (hours grow past 2 digits for long runs).
+ * @example formatDuration(580000) // "00:09:40"
+ */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "00:00:00";
+  const total = Math.round(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  return `${String(h).padStart(2, "0")}:${p2(m)}:${p2(s)}`;
+}
+
 /** Pure: compact one-line summary of a tool_use block (icon + name + key arg). */
 export function toolSummary(name: string, input: Record<string, unknown>): string {
   const key = TOOL_ARG_KEYS[name];
@@ -164,11 +178,11 @@ export function formatEvent(ev: any, agents: Map<string, string> = new Map()): s
 export function resultSummary(label: string, ev: any): string {
   const ok = ev?.subtype === "success" && !ev?.is_error;
   const turns = ev?.num_turns;
-  const secs = typeof ev?.duration_ms === "number" ? Math.round(ev.duration_ms / 1000) : undefined;
+  const duration = typeof ev?.duration_ms === "number" ? formatDuration(ev.duration_ms) : undefined;
   const cost = typeof ev?.total_cost_usd === "number" ? ev.total_cost_usd.toFixed(2) : undefined;
   const parts = [
     turns !== undefined ? `${turns} turns` : null,
-    secs !== undefined ? `${secs}s` : null,
+    duration !== undefined ? duration : null,
     cost !== undefined ? `$${cost}` : null,
   ].filter(Boolean);
   return `${ok ? "✓" : "✗"} ${label}${parts.length ? " · " + parts.join(" · ") : ""}`;
