@@ -106,6 +106,17 @@ export function truncate(s: string, n: number): string {
   return oneLine.length > n ? oneLine.slice(0, n - 1) + "…" : oneLine;
 }
 
+/** Pure: format a millisecond duration as HH:MM:SS (hours grow past 2 digits for long runs). */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "00:00:00";
+  const total = Math.round(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  return `${String(h).padStart(2, "0")}:${p2(m)}:${p2(s)}`;
+}
+
 /** Pure: compact one-line summary of a tool_use block (icon + name + key arg). */
 export function toolSummary(name: string, input: Record<string, unknown>): string {
   const key = TOOL_ARG_KEYS[name];

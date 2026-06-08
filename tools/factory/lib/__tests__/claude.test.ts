@@ -12,6 +12,7 @@ import {
   toolSummary,
   formatEvent,
   resultSummary,
+  formatDuration,
 } from "../claude";
 
 describe("buildClaudeArgs", () => {
@@ -107,6 +108,39 @@ describe("truncate", () => {
   });
   test("clips long strings with an ellipsis", () => {
     expect(truncate("abcdefghij", 5)).toBe("abcd…");
+  });
+});
+
+describe("formatDuration", () => {
+  test("0 ms → 00:00:00", () => {
+    expect(formatDuration(0)).toBe("00:00:00");
+  });
+  test("42000 ms → 00:00:42", () => {
+    expect(formatDuration(42000)).toBe("00:00:42");
+  });
+  test("580000 ms → 00:09:40", () => {
+    expect(formatDuration(580000)).toBe("00:09:40");
+  });
+  test("3661000 ms → 01:01:01 (hours + minutes + seconds)", () => {
+    expect(formatDuration(3661000)).toBe("01:01:01");
+  });
+  test("rounding: 1500 ms rounds to 2 s → 00:00:02", () => {
+    expect(formatDuration(1500)).toBe("00:00:02");
+  });
+  test("rounding: 59600 ms rounds up to 60 s → 00:01:00 (crosses minute boundary)", () => {
+    expect(formatDuration(59600)).toBe("00:01:00");
+  });
+  test("360000000 ms → 100:00:00 (hours grow past 2 digits)", () => {
+    expect(formatDuration(360000000)).toBe("100:00:00");
+  });
+  test("negative input → 00:00:00", () => {
+    expect(formatDuration(-5)).toBe("00:00:00");
+  });
+  test("NaN → 00:00:00", () => {
+    expect(formatDuration(NaN)).toBe("00:00:00");
+  });
+  test("Infinity → 00:00:00", () => {
+    expect(formatDuration(Infinity)).toBe("00:00:00");
   });
 });
 
