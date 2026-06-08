@@ -13,7 +13,7 @@ spec: docs/factory/specs/2026-06-08-1802--issue-41--dashboard-version-footer--de
 
 ## Task Checklist
 
-- [ ] Task 1: Create VersionFooter component with direct test
+- [x] Task 1: Create VersionFooter component with direct test
 - [ ] Task 2: Integrate VersionFooter into dashboard layout with layout test
 - [ ] Task 3: Capture browser screenshot evidence
 
