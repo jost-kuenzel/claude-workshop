@@ -1,14 +1,14 @@
 # The AI Factory — Process Guide
 
-The **AI factory** turns a rough idea into a merged pull request through a chain of
-small, single-purpose steps. The early stages are **human-driven and local** — you
-run them inside a Claude Code session, one question at a time, until a reviewed
+The **AI factory** turns a rough idea into a reviewed pull request through a chain
+of small, single-purpose stages. The early stages are **human-driven and local** —
+you run them inside a Claude Code session, one question at a time, until a reviewed
 artifact is committed to `main`. A single label then flips the work into a
-**fully automated CI build** that plans, implements, reviews, and opens a PR on its
-own. A PR comment lets you ask the automation for another revision round.
+**fully automated CI build** that plans, implements, self-reviews, and opens a PR.
+A PR comment can ask the automation for another revision round; a human approves
+and merges.
 
-The factory is built from four kinds of part, glued together by Bun/TypeScript
-scripts:
+The pipeline is built from four kinds of part:
 
 - **GitHub (the control plane)** — issues, labels, and PR comments are the signals
   that move work between stages. A label or a comment substring is all it takes to
@@ -18,16 +18,17 @@ scripts:
 - **Skills** — `factory-*` skills encode the _how_ of each stage (interview, write a
   spec, decompose a plan, implement one task). They run in a Claude session, whether
   you invoke them locally or CI invokes them headlessly.
-- **Subagents** — read-only reviewers and a single-task implementer, dispatched by
-  the skills. Reviewers return `approved` / `changes-requested`; the implementer
-  writes code via TDD.
+- **Subagents** — one TDD implementer plus several read-only reviewers, dispatched
+  by the implement-task skill during the build.
 
-The connective tissue is a set of `tools/factory/*.ts` Bun scripts: two
+The connective tissue is a set of `tools/factory/*.ts` Bun/TypeScript scripts: two
 orchestrators (`workflow-go.ts`, `workflow-revise.ts`) plus helpers that create
-issues, author specs, parse plans, and drive the `claude` and `gh` CLIs.
+issues, author specs, parse plans, and drive the `claude` and `gh` CLIs. During CI,
+every `claude` invocation runs inside an **OS sandbox** (see
+[The runner environment](#the-runner-environment)).
 
-> The diagrams below are Mermaid. This guide could not render them — please preview
-> the rendered Markdown and report any diagram that fails to parse so it can be fixed.
+> The diagrams below are Mermaid. This guide cannot render them — please preview the
+> rendered output and report any diagram that fails to parse so it can be fixed.
 
 ---
 
@@ -35,263 +36,300 @@ issues, author specs, parse plans, and drive the `claude` and `gh` CLIs.
 
 ```mermaid
 flowchart TD
-    subgraph Idea
-        H1["Human: rough idea<br/>or bug report"]:::human
+    classDef human fill:#fde68a,stroke:#b45309,color:#1c1917
+    classDef gh fill:#bfdbfe,stroke:#1d4ed8,color:#1e293b
+    classDef skill fill:#bbf7d0,stroke:#15803d,color:#14532d
+    classDef agent fill:#e9d5ff,stroke:#7e22ce,color:#3b0764
+    classDef script fill:#fed7aa,stroke:#c2410c,color:#7c2d12
+    classDef artifact fill:#e2e8f0,stroke:#475569,color:#0f172a
+
+    subgraph IDEA["Idea to issue — local"]
+        H1["Human: rough idea"]:::human
         SK_ISSUE["skill: factory-issue"]:::skill
-        ISSUE["GitHub issue<br/>labels: factory-idea (+bug)"]:::gh
-        H1 --> SK_ISSUE --> ISSUE
+        SC_ISSUE["script: issue-create.ts"]:::script
+        ISSUE["GitHub issue<br/>label: factory-idea"]:::gh
+        H1 --> SK_ISSUE --> SC_ISSUE --> ISSUE
     end
 
-    subgraph Spec
+    subgraph SPEC["Spec — local"]
         SK_BS["skill: factory-brainstorm"]:::skill
-        AG_BSR["agent: factory-brainstorm-reviewer<br/>(opus, read-only)"]:::agent
-        SPEC["artifact: design spec<br/>docs/factory/specs/...--design.md"]:::artifact
+        AG_BSR["agent: factory-brainstorm-reviewer<br/>opus, read-only"]:::agent
+        SPECF["artifact: spec<br/>docs/factory/specs/...--design.md"]:::artifact
         ISSUE --> SK_BS --> AG_BSR
-        AG_BSR -->|approved| SPEC
+        AG_BSR -->|approved| SPECF
         AG_BSR -.->|changes-requested| SK_BS
     end
 
-    LABEL["Human adds label:<br/>factory-go"]:::human
-    SPEC --> LABEL
+    LABEL["Human adds label: factory-go"]:::human
+    SPECF --> LABEL
 
-    subgraph CI["Automated build (factory-go workflow)"]
-        WF_GO["workflow: factory-go.yml"]:::gh
+    subgraph CI["Automated build — factory-go.yml — CI"]
+        WF["workflow: factory-go.yml"]:::gh
         ORCH["script: workflow-go.ts"]:::script
-        PR["GitHub PR<br/>(Closes #N)"]:::gh
+        PR["GitHub PR<br/>Closes #N"]:::gh
         SK_PLAN["skill: factory-plan"]:::skill
-        AG_PLANR["agent: factory-plan-reviewer<br/>(opus, read-only)"]:::agent
-        PLAN["artifact: task plan<br/>docs/factory/plans/...--plan.md"]:::artifact
+        AG_PLANR["agent: factory-plan-reviewer<br/>opus"]:::agent
+        PLAN["artifact: plan<br/>docs/factory/plans/...--plan.md"]:::artifact
         SK_TASK["skill: factory-implement-task"]:::skill
-        AG_IMPL["agent: factory-implementer<br/>(sonnet, TDD)"]:::agent
-        AG_SPECR["agent: factory-spec-reviewer<br/>(sonnet, read-only)"]:::agent
-        AG_CQR["agent: factory-code-quality-reviewer<br/>(sonnet, read-only)"]:::agent
-        FIN["script: pr-finalize.ts<br/>(rewrite PR body)"]:::script
-
-        LABEL --> WF_GO --> ORCH --> PR
+        AG_IMPL["agent: factory-implementer<br/>sonnet, TDD"]:::agent
+        AG_SPECR["agent: factory-spec-reviewer<br/>sonnet"]:::agent
+        AG_QUAL["agent: factory-code-quality-reviewer<br/>sonnet"]:::agent
+        LABEL --> WF --> ORCH --> PR
         ORCH --> SK_PLAN --> AG_PLANR
         AG_PLANR -->|approved| PLAN
         AG_PLANR -.->|changes-requested| SK_PLAN
         PLAN --> SK_TASK --> AG_IMPL --> AG_SPECR
-        AG_SPECR -->|compliant| AG_CQR
         AG_SPECR -.->|issues| AG_IMPL
-        AG_CQR -->|approved| PLAN
-        AG_CQR -.->|issues| AG_IMPL
-        SK_TASK -->|all tasks checked| FIN --> PR
+        AG_SPECR -->|compliant| AG_QUAL
+        AG_QUAL -.->|issues| AG_IMPL
+        AG_QUAL -->|approved| PLAN
     end
 
-    subgraph Revise
-        H2["Human: PR comment<br/>contains /factory-revise"]:::human
+    subgraph REV["Revision — CI, optional"]
+        CMT["Human PR comment: /factory-revise"]:::human
         WF_REV["workflow: factory-revise.yml"]:::gh
         ORCH_REV["script: workflow-revise.ts"]:::script
-        PR --> H2 --> WF_REV --> ORCH_REV --> PR
+        CMT --> WF_REV --> ORCH_REV --> PR
     end
 
-    MERGE["Human: review &amp; merge<br/>(merge commit)"]:::human
-    PR --> MERGE
-
-    classDef human fill:#fde68a,stroke:#b45309,color:#1f2937
-    classDef gh fill:#bfdbfe,stroke:#1d4ed8,color:#1f2937
-    classDef skill fill:#bbf7d0,stroke:#15803d,color:#1f2937
-    classDef agent fill:#ddd6fe,stroke:#6d28d9,color:#1f2937
-    classDef script fill:#fecaca,stroke:#b91c1c,color:#1f2937
-    classDef artifact fill:#e5e7eb,stroke:#374151,color:#1f2937
+    PR --> REVIEW["Human reviews PR"]:::human
+    REVIEW -.->|request changes| CMT
+    REVIEW -->|approve| MERGE["Human merges to main"]:::human
 ```
 
-**Legend:** 🟡 human action · 🔵 GitHub object · 🟢 skill · 🟣 subagent · 🔴 script · ⬜ committed artifact.
+**Legend:** 🟨 human action · 🟦 GitHub object · 🟩 skill · 🟪 subagent · 🟧 script · ⬜ artifact.
 
 ---
 
 ## Stage-by-stage walkthrough
 
-### 1. Idea → issue · _local, human-driven_
+### 1. Idea → issue _(local, human-driven)_
 
-- **Skill:** `factory-issue`. A mini-brainstorm: asks feature-or-bug, then a few
-  one-at-a-time questions to nail the core.
-- **Script:** `tools/factory/issue-create.ts` files the issue via `gh`. Feature
-  bodies use `## What / ## Why / ## Constraints`; bug bodies use
-  `## What's broken / ## Expected / ## Where`.
-- **Labels:** every factory issue gets **`factory-idea`**; bugs additionally get
-  **`bug`** (`labelsFor()` in `issue-create.ts`).
-- **Invariant:** never run `gh issue create` directly — always route through the
-  skill so the format and labels the pipeline depends on are correct.
+Invoke the **`factory-issue`** skill. It runs a mini-interview (feature or bug, then
+a few one-at-a-time questions) and files the issue via **`tools/factory/issue-create.ts`**.
+All issues get the **`factory-idea`** label; bugs also get **`bug`**. Never run
+`gh issue create` directly — it bypasses the format and labels the pipeline depends on.
 
-### 2. Issue → spec · _local, human-driven_
+**Produces:** a GitHub issue. **Hands off:** the issue number.
 
-- **Skill:** `factory-brainstorm`. Guided dialogue → 2–3 approaches →
-  section-by-section design → spec → review loop → human gate → commit+push.
-- **Reviewer:** dispatches **`factory-brainstorm-reviewer`** (opus, read-only). It
-  returns `approved` or `changes-requested` with blocking Issues and advisory
-  Recommendations. Loop until `approved`; the spec is committed only after that.
-- **Artifact:** `docs/factory/specs/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--design.md`,
-  with frontmatter `name`, `description`, `status: draft`, `issue: N`.
-- **Commit + push:** `bun tools/factory/spec-author.ts --commit-spec <path>`. The
-  push matters — the CI build finds the spec by globbing `main`.
-- **Handoff hint printed by the skill:**
-  `Spec on main. To start implementation: gh issue edit N --add-label factory-go`
+### 2. Issue → spec _(local, human-driven)_
 
-### 3. The `factory-go` label · _the human gate into automation_
+Invoke the **`factory-brainstorm`** skill. It reads the issue (via `spec-author.ts`),
+runs a one-question-at-a-time dialogue, proposes 2–3 approaches, presents the design
+section-by-section, then loops the **`factory-brainstorm-reviewer`** subagent
+(opus, read-only) until it returns **`approved`**. After a human gate it commits the
+spec to `main` with `spec-author.ts --commit-spec`.
 
-Adding the **`factory-go`** label to the issue is the single switch that starts the
-automated build. Everything below runs in GitHub Actions with no further human input
-until the PR is open.
+**Produces:** `docs/factory/specs/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--design.md`,
+frontmatter `{name, description, status: draft, issue: N}`.
+**Invariant:** the `issue:` frontmatter is validated on every write by the
+`factory-spec-frontmatter` hook. **Hands off:** prints
+`gh issue edit N --add-label factory-go`.
 
-### 4. Spec → plan · _automated / CI_
+### 3. The label gate _(human-driven)_
 
-- **Skill:** `factory-plan`, dispatched by the orchestrator via
-  `tools/factory/plan-gen.ts` (tool allowlist `PLAN_TOOLS`).
-- **Reviewer:** dispatches **`factory-plan-reviewer`** (opus, read-only) to check the
-  plan against its spec for completeness, fresh-context buildability, decomposition,
-  and structure. Loop until `approved`; commit only then.
-- **Artifact:** `docs/factory/plans/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--plan.md`,
-  frontmatter `issue: N` and `spec: <path>`.
-- **Invariant — the `## Task Checklist` is the single source of truth.** The plan has
-  a `## Task Checklist` (one `- [ ] Task <n>: <title>` per task), a `---` separator,
-  then a `### Task <n>:` detail section per task. The orchestrator drives its task
-  loop entirely off the checkboxes in this section.
+A human adds the **`factory-go`** label to the issue. This is the single switch from
+local/human work to automated/CI work. The workflow only runs if the **issue author**
+is an `OWNER`, `MEMBER`, or `COLLABORATOR` — the prompt-injection surface is kept to
+trusted authors because the CI build runs with loosened in-run permissions.
 
-### 5. Plan → code, one task at a time · _automated / CI_
+### 4. Plan generation _(CI, automated)_
 
-For each unchecked task, the orchestrator dispatches the `factory-implement-task`
-skill (via `tools/factory/task-run.ts`), which runs a strict three-agent sequence:
+`factory-go.yml` → `workflow-go.ts` reacts 👍, finds the spec by matching frontmatter
+`issue:`, creates branch `factory/issue-<N>--<slug>`, opens a PR (`Closes #N`), then
+invokes the **`factory-plan`** skill (headless `claude`). The skill decomposes the
+spec and loops the **`factory-plan-reviewer`** (opus) until **`approved`** before the
+plan is committed.
 
-1. **`factory-implementer`** (sonnet) — implements exactly one task via TDD
-   (red → green → refactor; the `factory-tdd` skill is preloaded into it). It writes
-   tests and code and commits its own work. It reports one of **DONE /
-   DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED**. It receives the _full task text_,
-   not the plan file.
-2. **`factory-spec-reviewer`** (sonnet, read-only) — checks the diff against the
-   task: nothing missing, nothing over-engineered. Issues → implementer fixes →
-   re-review.
-3. **`factory-code-quality-reviewer`** (sonnet, read-only) — only after spec review
-   is clean, assesses correctness, decomposition, testing, and clarity.
+**Produces:** `docs/factory/plans/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--plan.md`,
+frontmatter `{issue: N, spec: <path>}`.
+**Invariant — single source of truth:** the `## Task Checklist` section, one
+`- [ ] Task <n>: <title>` line per task. A `### Task <n>:` detail section follows for
+each. The plan is the last human-readable scrutiny point before code is written, so it
+must be buildable from fresh context (no cross-task references).
 
-- **Invariant — spec review before quality review. Never reorder.** Both reviewers
-  are read-only; only the implementer changes files.
-- When both reviews pass, the skill flips this task's `- [ ]` to `- [x]` in the
-  `## Task Checklist` and commits `factory: complete task <N> — <title>`. The
-  orchestrator verifies the box flipped; if not, it halts the run and comments on the
-  issue. A persistent blocker (~3 rounds) is surfaced as **BLOCKED** rather than
-  ping-ponging the turn budget.
+### 5. The task loop _(CI, automated)_
 
-### 6. PR finalize · _automated / CI_
+For each unchecked task, `workflow-go.ts` invokes the **`factory-implement-task`** skill,
+which dispatches subagents in a fixed order:
 
-After the last task is checked, `tools/factory/pr-finalize.ts` runs Claude with a
-**read-only** allowlist (`Read, Grep, Glob, Bash(git log:*), Bash(gh pr edit:*)`) to
-rewrite the PR body into a Summary + Test plan synthesized from the plan and commit
-log. The orchestrator then reacts 🎉 on the issue.
+1. **`factory-implementer`** (sonnet) — implements the one task on the branch using
+   **test-first** discipline (it has the **`factory-tdd`** skill preloaded), then commits.
+   Returns `DONE` / `DONE_WITH_CONCERNS` / `NEEDS_CONTEXT` / `BLOCKED`.
+2. **`factory-spec-reviewer`** (sonnet, read-only) — confirms the change matches the
+   task/spec: nothing missing, nothing extra. Loops back to the implementer on issues.
+3. **`factory-code-quality-reviewer`** (sonnet, read-only) — only after spec compliance
+   passes, assesses correctness, decomposition, tests, naming, repo patterns.
 
-### 7. Revise → re-run · _automated / CI, human-triggered_
+**Invariants:** spec review **before** quality review; only the implementer edits files
+(reviewers are read-only); the task is checked off (`- [ ]` → `- [x]`) only when both
+reviewers pass. Before the implement step can stop, the **`factory-test-gate`** Stop hook
+runs `bun run lint` and `bun run test` (both the Bun and Vitest suites) and blocks the
+stop until they pass (or 3 attempts elapse). After each task the orchestrator verifies
+the checkbox flipped — if not, it comments on the issue and halts. Work is pushed after
+the plan and after every task.
 
-Comment **`/factory-revise`** on the PR to ask the automation for another pass. The
-`factory-revise` workflow gathers the PR's review/comment bodies and dispatches Claude
-to apply them on the PR branch. A per-PR counter (`.factory/revise-count-<PR>.txt`)
-enforces a hard cap of **5** revision rounds.
+### 6. PR finalize _(CI, automated)_
 
-### 8. Merge · _local, human-driven_
+`workflow-go.ts` invokes **`pr-finalize.ts`** to rewrite the PR body (Summary + Test
+plan) from the plan and commit log via `gh pr edit`, then reacts 🎉 (or 😕 on failure).
 
-A human reviews and merges the PR using the **merge commit** strategy. The PR body
-`Closes #N` ties it back to the originating issue.
+### 7. Revision _(CI, optional)_
+
+A human comments **`/factory-revise`** on the PR. `factory-revise.yml` →
+`workflow-revise.ts` reacts 👍, enforces a **cap of 5** revision rounds per PR, gathers
+the PR's review comments, and invokes `claude` to apply the changes on the PR branch
+(the same Stop test-gate applies), then pushes. Gated to comment authors who are
+`OWNER`/`MEMBER`/`COLLABORATOR`.
+
+### 8. Merge _(human-driven)_
+
+A human reviews the PR and merges to `main`.
+
+### Retrospective _(local, on demand)_
+
+The **`factory-retro`** skill mines a run's `.factory/logs/<run-id>--<step>.jsonl`
+artifact and per-phase timing/cost for friction, and routes each finding to its fix
+(a factory issue, a docs refresh via `docs-factory`, or a config change).
 
 ---
 
 ## The automated build, in detail
 
-This sequence mirrors the actual step order in `tools/factory/workflow-go.ts`.
-
 ```mermaid
 sequenceDiagram
-    autonumber
     participant GH as GitHub
     participant WF as factory-go.yml
     participant ORCH as workflow-go.ts
-    participant CL as claude CLI
-    participant AG as subagents
+    participant CLA as claude (sandbox)
+    participant SUB as subagents
 
-    GH->>WF: issue labeled "factory-go"
+    GH->>WF: issue labeled factory-go (trusted author)
     WF->>ORCH: bun tools/factory/workflow-go.ts
-    ORCH->>GH: react 👍 on issue
-    ORCH->>ORCH: glob docs/factory/specs/**, match frontmatter issue:N
-    Note over ORCH: no match → comment + 😕 react, fail
-    ORCH->>GH: create branch factory/issue-N--slug, seed empty commit, push
-    ORCH->>GH: open PR (feat: title, body "Closes #N")
-
-    ORCH->>CL: plan-gen prompt (PLAN_TOOLS, maxTurns 50)
-    CL->>AG: factory-plan → factory-plan-reviewer (loop until approved)
-    AG-->>CL: plan committed
-    ORCH->>GH: git push
-
-    loop until every task checkbox is [x]
-        ORCH->>ORCH: parsePlan + firstUnchecked
-        ORCH->>CL: task prompt (TASK_TOOLS, maxTurns 50)
-        CL->>AG: implementer → spec-reviewer → code-quality-reviewer
-        AG-->>CL: task checked off + committed
-        ORCH->>ORCH: verify box flipped (else comment + halt)
-        ORCH->>GH: git push
+    ORCH->>GH: react +1 on issue
+    ORCH->>ORCH: find spec by frontmatter issue:N
+    ORCH->>GH: create branch factory/issue-N--slug + open PR
+    ORCH->>CLA: plan-gen (factory-plan skill)
+    CLA->>SUB: factory-plan-reviewer (loop until approved)
+    CLA-->>ORCH: plan committed + pushed
+    loop each unchecked task
+        ORCH->>CLA: task-N (factory-implement-task skill)
+        CLA->>SUB: factory-implementer (TDD, commits)
+        CLA->>SUB: factory-spec-reviewer
+        CLA->>SUB: factory-code-quality-reviewer
+        Note over CLA,SUB: loop back to implementer until both pass
+        CLA->>CLA: Stop hook gates bun run lint + bun run test
+        CLA-->>ORCH: task checked off, commit + push
+        ORCH->>ORCH: verify checkbox flipped, else comment + halt
     end
-
-    ORCH->>CL: pr-finalize prompt (read-only tools, maxTurns 20)
-    CL-->>GH: gh pr edit (rewrite PR body)
-    ORCH->>GH: react 🎉 on issue
-    Note over WF,GH: logs uploaded as artifact factory-logs-<run_id>
+    ORCH->>CLA: pr-finalize (rewrite PR body via gh pr edit)
+    ORCH->>GH: react hooray
 ```
+
+### The runner environment
+
+Both workflows run on `ubuntu-latest` and prepare an OS sandbox before any `claude`
+step, because the CI build runs `claude` with `--permission-mode bypassPermissions`
+(no per-step tool allow-lists) — the **sandbox is the security boundary**, not an
+allow-list. Each orchestrator spreads the shared **`CI_SANDBOX`** profile
+(`tools/factory/lib/claude.ts`) into every `runClaude` call:
+
+```ts
+export const CI_SANDBOX = {
+  settings: "tools/factory/ci.settings.json",
+  permissionMode: "bypassPermissions",
+} as const;
+```
+
+`tools/factory/ci.settings.json` enables the OS sandbox and constrains network egress:
+
+```json
+{
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "network": { "allowedDomains": ["api.github.com", "github.com", "*.npmjs.org"] }
+  }
+}
+```
+
+The sandbox needs **`bubblewrap`** (process/fs isolation) **and `socat`** (its localhost
+network proxy); on `ubuntu-24.04` the default AppArmor policy blocks bubblewrap from
+configuring its network namespace, so the workflows also relax
+`kernel.apparmor_restrict_unprivileged_userns`. The workflows install both packages
+and the Chromium browser (for the `playwright-cli` skill) before invoking `claude`.
+Settings are passed via `--settings` (not the repo `.claude/settings.json`), so local
+`claude` sessions stay unsandboxed and unrestricted.
 
 ---
 
 ## Reference tables
 
-### Skills
+### Skills (`.claude/skills/factory-*`)
 
-| Skill                    | Stage                   | Consumes → Produces                                         |
-| ------------------------ | ----------------------- | ----------------------------------------------------------- |
-| `factory-issue`          | idea → issue (local)    | dialogue → GitHub issue (`factory-idea` [+`bug`])           |
-| `factory-brainstorm`     | issue → spec (local)    | issue → committed `…--design.md`, prints `factory-go` hint  |
-| `factory-plan`           | spec → plan (CI)        | spec path → committed `…--plan.md` with `## Task Checklist` |
-| `factory-implement-task` | plan → code (CI)        | one task → code + checked-off task                          |
-| `factory-tdd`            | embedded in implementer | failing test → minimal code → green                         |
-| `docs-factory`           | meta / docs             | live factory → `docs/factory/factory-process-guide.md`      |
+| Skill                    | Stage                | Produces / does                                                            |
+| ------------------------ | -------------------- | -------------------------------------------------------------------------- |
+| `factory-issue`          | Idea → issue (local) | Files a GitHub issue via `issue-create.ts`; labels `factory-idea` (+`bug`) |
+| `factory-brainstorm`     | Issue → spec (local) | Reviewed spec committed to `main`; prints the `factory-go` hint            |
+| `factory-plan`           | Plan gen (CI)        | Checkbox task plan; loops `factory-plan-reviewer` to approval              |
+| `factory-implement-task` | Task loop (CI)       | Drives implementer → spec-review → quality-review for one task             |
+| `factory-tdd`            | Within implement     | Enforces test-first (red → green → refactor)                               |
+| `factory-retro`          | On demand (local)    | Mines run logs for learnings; routes findings to fixes                     |
+| `docs-factory`           | On demand (local)    | Regenerates this guide from live sources                                   |
 
-### Subagents
+### Subagents (`.claude/agents/factory-*`)
 
-| Subagent                        | Role                             | Model  | Returns                                             |
-| ------------------------------- | -------------------------------- | ------ | --------------------------------------------------- |
-| `factory-brainstorm-reviewer`   | review spec vs factory-readiness | opus   | `approved` / `changes-requested`                    |
-| `factory-plan-reviewer`         | review plan vs spec              | opus   | `approved` / `changes-requested`                    |
-| `factory-implementer`           | implement one task via TDD       | sonnet | DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED |
-| `factory-spec-reviewer`         | code vs task (compliance)        | sonnet | compliant / issues found                            |
-| `factory-code-quality-reviewer` | quality after spec pass          | sonnet | approved / changes required                         |
+| Agent                           | Model  | Tools                          | Role / returns                                                                                    |
+| ------------------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `factory-implementer`           | sonnet | edit + bun/eslint + local git  | Implements one task (TDD). Returns `DONE` / `DONE_WITH_CONCERNS` / `NEEDS_CONTEXT` / `BLOCKED`    |
+| `factory-brainstorm-reviewer`   | opus   | Read, Grep, Glob               | Reviews the spec doc. `approved` / `changes-requested` (Issues vs Recommendations)                |
+| `factory-plan-reviewer`         | opus   | Read, Grep, Glob               | Reviews the plan vs spec (coverage, fresh-context buildability). `approved` / `changes-requested` |
+| `factory-spec-reviewer`         | sonnet | Read, Grep, Glob, git diff/log | Confirms implementation matches task/spec. `✅ compliant` / `❌ issues`                           |
+| `factory-code-quality-reviewer` | sonnet | Read, Grep, Glob, git diff/log | Assesses quality after spec passes. Approved / changes required                                   |
 
 ### GitHub Actions (workflow → trigger → script)
 
-| Workflow             | Trigger (`on:` + `if:`)                                                                                                                | Runs                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `factory-go.yml`     | `issues: [labeled]` and `if: github.event.label.name == 'factory-go'`                                                                  | `bun tools/factory/workflow-go.ts`     |
-| `factory-revise.yml` | `issue_comment: [created]` and `if: github.event.issue.pull_request != null && contains(github.event.comment.body, '/factory-revise')` | `bun tools/factory/workflow-revise.ts` |
+| Workflow             | Trigger                    | Gate (`if:`)                                                                                                          | Runs                 |
+| -------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `factory-go.yml`     | `issues: [labeled]`        | `label.name == 'factory-go'` **and** issue `author_association` in `OWNER/MEMBER/COLLABORATOR`                        | `workflow-go.ts`     |
+| `factory-revise.yml` | `issue_comment: [created]` | comment on a PR, body contains `/factory-revise`, **and** comment `author_association` in `OWNER/MEMBER/COLLABORATOR` | `workflow-revise.ts` |
 
-Both upload `.factory/logs/` as artifact `factory-logs-<run_id>` (`if: always()`).
+Both: `permissions: contents/issues/pull-requests: write`; install `bubblewrap`+`socat`
 
-### Scripts (script → role)
+- relax AppArmor + install Chromium + install the `claude` CLI before running; upload
+  `.factory/logs/` as `factory-logs-<run-id>`.
 
-| Script               | Role                                                                        |
-| -------------------- | --------------------------------------------------------------------------- |
-| `workflow-go.ts`     | **orchestrator** — label → branch/PR → plan → task loop → finalize          |
-| `workflow-revise.ts` | **orchestrator** — `/factory-revise` → apply review feedback → push (cap 5) |
-| `plan-gen.ts`        | dispatch `factory-plan` with `PLAN_TOOLS`; build plan prompt                |
-| `task-run.ts`        | dispatch `factory-implement-task`; build single-task prompt                 |
-| `pr-finalize.ts`     | rewrite PR body from plan + commit log (read-only tools)                    |
-| `issue-create.ts`    | create labelled issues; `labelsFor()`, feature/bug bodies                   |
-| `spec-author.ts`     | spec filenames, frontmatter, `slugify`, `--commit-spec`                     |
-| `plan.ts`            | `parsePlan` / `firstUnchecked` / `checkOffTask` over the checklist          |
-| `github.ts`          | `gh` argument builders + `runGh` / `runProcess` (dry-run aware)             |
-| `claude.ts`          | spawn `claude`, stream-json logging to `.factory/logs/`, result summary     |
+### Scripts (`tools/factory/*`)
 
-### Labels & commands (trigger → effect)
+| Script               | Role                                                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `workflow-go.ts`     | Build orchestrator: react → find spec → branch/PR → plan → task loop → finalize                                   |
+| `workflow-revise.ts` | Revision orchestrator: cap → gather feedback → revise → push (cap 5)                                              |
+| `plan-gen.ts`        | Invokes `claude` (factory-plan) under `CI_SANDBOX`; exports `buildPrompt`                                         |
+| `task-run.ts`        | Runs one task: parse plan → invoke `claude` (factory-implement-task) → verify checkbox; exports `buildTaskPrompt` |
+| `pr-finalize.ts`     | Rewrites the PR body; exports `buildFinalizePrompt`                                                               |
+| `spec-author.ts`     | `slugify`, `truncateSlug`, `specFilename`, frontmatter, read-issue, commit-spec                                   |
+| `issue-create.ts`    | Formats + creates issues with factory labels                                                                      |
+| `lib/claude.ts`      | `runClaude`, `buildClaudeArgs`, the `CI_SANDBOX` profile, stream-json log formatting                              |
+| `lib/plan.ts`        | `parsePlan`, `firstUnchecked`, `checkOffTask` (the checklist contract)                                            |
+| `lib/github.ts`      | `runGh` + arg builders for reactions, PR create, issue comments                                                   |
 
-| Trigger                      | Effect                                                          |
-| ---------------------------- | --------------------------------------------------------------- |
-| label `factory-idea`         | marks an issue as factory work (all issues)                     |
-| label `bug`                  | marks the issue as a bug (added alongside `factory-idea`)       |
-| label `factory-go`           | **starts the automated build** (`factory-go.yml`)               |
-| PR comment `/factory-revise` | **starts a revision round** (`factory-revise.yml`), capped at 5 |
+### Hooks (`.claude/settings.json` → `tools/hooks/*`)
+
+| Hook                          | When                      | Effect                                                                                    |
+| ----------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| `lint-fix.ts`                 | PostToolUse `Write\|Edit` | Best-effort `eslint --fix` + `prettier --write` on the edited file                        |
+| `factory-spec-frontmatter.ts` | PostToolUse `Write\|Edit` | Validates `issue:` frontmatter on `docs/factory/specs/*`; exit 2 to force a fix           |
+| `factory-test-gate.ts`        | Stop (CI only)            | Runs `bun run lint` + `bun run test` (both suites); blocks stop until green or 3 attempts |
+
+### Labels & commands
+
+| Trigger                       | Effect                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| label `factory-idea` (+`bug`) | Applied at issue creation; marks factory work                                        |
+| label `factory-go`            | Starts the automated build (`factory-go.yml`) — trusted issue authors only           |
+| PR comment `/factory-revise`  | Starts a revision round (`factory-revise.yml`) — trusted comment authors only, cap 5 |
+| reactions 👍 / 🎉 / 😕        | Run started / succeeded / errored                                                    |
 
 ---
 
@@ -299,21 +337,19 @@ Both upload `.factory/logs/` as artifact `factory-logs-<run_id>` (`if: always()`
 
 ```bash
 # 1. Idea → issue (in a Claude Code session)
-/factory-issue            # interview → files issue with factory-idea [+bug]
+#    Invoke the skill; it interviews you and files the issue.
+/factory-issue            # → issue #N (label: factory-idea)
 
-# 2. Issue → reviewed spec on main (in a Claude Code session)
-/factory-brainstorm       # dialogue → spec → reviewer loop → commit + push
+# 2. Issue → spec (same session)
+#    Guided design; reviewer loop; commits the spec to main.
+/factory-brainstorm       # → docs/factory/specs/...--issue-N--...--design.md
 
 # 3. Start the automated build
-gh issue edit <N> --add-label factory-go
-#   → CI: branch + PR → plan (+review) → per-task implement+review loop → finalize PR
+gh issue edit N --add-label factory-go
+#    CI plans, implements, self-reviews, and opens a PR (Closes #N).
 
-# 4. Ask for another pass (comment on the PR), repeat as needed (max 5)
-#   /factory-revise  — applies the open review feedback on the PR branch
+# 4. (optional) Ask for a revision round — comment on the PR:
+#    /factory-revise please rename X to Y and add a test for Z
 
-# 5. Review and merge the PR (merge commit strategy)
-gh pr merge <PR> --merge
+# 5. Review and merge the PR yourself.
 ```
-
-> Keep this guide fresh: when the pipeline changes, re-run the `docs-factory` skill —
-> it re-derives the whole guide from the live sources rather than patching prose.
