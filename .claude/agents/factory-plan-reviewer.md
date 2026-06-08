@@ -36,6 +36,12 @@ Checklist:
    `- [ ] Task <n>: <title>` line per task, a `---` separator, then matching
    `### Task <n>:` detail sections in order; `issue:` and `spec:` frontmatter present;
    a Goal/Architecture/Tech Stack context block under the title.
+7. Verification gate — the plan matches the spec's `## Verification` section. On
+   `UI surface: yes`: frontend impl tasks are annotated "self-verify in browser
+   (frontend-verify)", and exactly one evidence task (screenshot →
+   `docs/factory/evidence/issue-<N>/`, framed as non-TDD evidence capture) is the final
+   checklist line. On `no`: neither is present. Flag a missing/extra evidence task or a
+   missing self-verify annotation.
 
 ## Calibration
 

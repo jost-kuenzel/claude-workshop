@@ -14,6 +14,28 @@ Assume a skilled developer who knows almost nothing about this toolset or proble
 1. **Scope check** — if the spec spans multiple independent subsystems that should have been split during brainstorming, say so and recommend one plan per subsystem (each producing working, testable software). Don't silently cram them into one plan.
 2. **Map the files first** — before defining tasks, list every file you'll create or modify and the single responsibility of each. This is where decomposition gets locked in: one clear responsibility per file, files that change together live together, split by responsibility not by technical layer. In this codebase, follow existing patterns; only restructure a file you're already touching, not the whole tree. The file map drives the task breakdown — each task produces self-contained, independently sensible changes.
 
+## Verification gate (read the spec's `## Verification` section)
+
+Every spec ends with a `## Verification` section. Read it and act:
+
+- **`UI surface: no`** → do nothing extra (factory/infra and backend-only work).
+- **`UI surface: yes`** (the section also carries an abstract `Outcome:`):
+  1. **Annotate** the frontend implementation tasks (the ones that change what a user
+     sees) with an explicit expectation: "self-verify in browser via the
+     `frontend-verify` skill — drive Chromium to where the Outcome is observable and
+     confirm it renders with no same-origin console errors." You derive the concrete
+     route and steps; the spec stays abstract.
+  2. **Emit one evidence task as the final checklist line.** It runs on the integrated
+     final state and captures a single curated screenshot:
+     - server up, navigate to where the `Outcome` is observable (as in `frontend-verify`),
+     - `playwright-cli screenshot --filename=docs/factory/evidence/issue-<N>/<slug>.png`
+       (writes straight to the tracked path),
+     - `git add` + commit, then teardown.
+     - **Frame it as non-TDD:** word it as "evidence capture, not test-first: produce
+       the screenshot artifact" so neither the reviewers nor the implementer's own
+       "Testing — TDD followed" self-review flags it. A screenshot commit breaks
+       neither lint nor tests; "screenshot produced + committed" is the acceptance.
+
 ## Required output structure
 
 The plan MUST contain, in this order:
