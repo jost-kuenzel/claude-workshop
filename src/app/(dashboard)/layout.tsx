@@ -8,6 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex flex-1 flex-col">
         <Navbar />
         <main className="flex-1 p-6">{children}</main>
+        <footer className="border-t py-3 text-center text-xs text-gray-400">ACME CRM v1.0.0</footer>
       </div>
     </div>
   );
