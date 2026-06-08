@@ -106,7 +106,10 @@ export function truncate(s: string, n: number): string {
   return oneLine.length > n ? oneLine.slice(0, n - 1) + "…" : oneLine;
 }
 
-/** Pure: format a millisecond duration as HH:MM:SS (hours grow past 2 digits for long runs). */
+/**
+ * Pure: format a millisecond duration as HH:MM:SS (hours grow past 2 digits for long runs).
+ * @example formatDuration(580000) // "00:09:40"
+ */
 export function formatDuration(ms: number): string {
   if (!Number.isFinite(ms) || ms < 0) return "00:00:00";
   const total = Math.round(ms / 1000);

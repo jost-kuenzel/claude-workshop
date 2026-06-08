@@ -130,6 +130,9 @@ describe("formatDuration", () => {
   test("rounding: 59600 ms rounds up to 60 s → 00:01:00 (crosses minute boundary)", () => {
     expect(formatDuration(59600)).toBe("00:01:00");
   });
+  test("rounding: 400 ms rounds down to 0 s → 00:00:00", () => {
+    expect(formatDuration(400)).toBe("00:00:00");
+  });
   test("360000000 ms → 100:00:00 (hours grow past 2 digits)", () => {
     expect(formatDuration(360000000)).toBe("100:00:00");
   });
