@@ -157,6 +157,9 @@ describe("toolSummary", () => {
   test("falls back to just the name when no known arg is present", () => {
     expect(toolSummary("Mystery", { foo: "bar" })).toBe("🔧 Mystery");
   });
+  test("shows the skill name for Skill tool", () => {
+    expect(toolSummary("Skill", { skill: "factory-plan" })).toBe("🔧 Skill  factory-plan");
+  });
 });
 
 describe("formatEvent", () => {
@@ -271,6 +274,18 @@ describe("formatEvent", () => {
       message: { content: [{ type: "text", text: "hello" }] },
     };
     expect(formatEvent(orphan, agents)).toEqual(["  💬 hello"]);
+  });
+
+  test("shows skill name with subagent prefix when Skill is used inside an agent", () => {
+    const agents = new Map([["tu_1", "factory-implementer"]]);
+    const ev = {
+      type: "assistant",
+      parent_tool_use_id: "tu_1",
+      message: {
+        content: [{ type: "tool_use", name: "Skill", input: { skill: "factory-plan" } }],
+      },
+    };
+    expect(formatEvent(ev, agents)).toEqual(["      ↳ factory-implementer 🔧 Skill  factory-plan"]);
   });
 });
 

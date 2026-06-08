@@ -96,7 +96,7 @@ const TOOL_ARG_KEYS: Record<string, string> = {
   Bash: "command",
   Grep: "pattern",
   Glob: "pattern",
-  Skill: "command",
+  Skill: "skill",
   Agent: "description",
 };
 
