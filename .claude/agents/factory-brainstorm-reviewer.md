@@ -23,6 +23,10 @@ Checklist:
 6. Factory-readiness — valid positive-integer `issue:` frontmatter; filename matches
    `YYYY-MM-DD-HHMM--issue-N--slug--design.md`; every requirement is concrete enough
    for factory-plan to turn into checkbox tasks.
+7. Verification gate — a `## Verification` section is present and well-formed:
+   `UI surface: yes | no`, plus an abstract `Outcome:` line when `yes`. Flag a missing
+   section, a missing `Outcome` on `yes`, or an `Outcome` that over-specifies concrete
+   routes/selectors/click steps instead of the user-visible result.
 
 ## Calibration
 
