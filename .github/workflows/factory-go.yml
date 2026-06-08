@@ -38,8 +38,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - run: bun install --frozen-lockfile
-      # Install the chromium browser (+ OS deps) so the playwright-cli skill can
+      # Install the chromium browser (+ OS deps) so the frontend-verify skill can
       # drive a headless browser against the frontend during the Claude steps.
+      # PLAYWRIGHT_BROWSERS_PATH points inside the workspace so the browser AND the
+      # playwright-cli daemon's working dir ($PLAYWRIGHT_BROWSERS_PATH/daemon) live on
+      # a path that stays writable inside the OS sandbox. The default
+      # ~/.cache/ms-playwright is mounted read-only in the sandbox, which previously
+      # killed the daemon (`mkdir .../daemon: Read-only file system`). Set in
+      # $GITHUB_ENV so both the install step and the sandboxed Claude steps inherit it.
+      - run: echo "PLAYWRIGHT_BROWSERS_PATH=$GITHUB_WORKSPACE/.playwright-browsers" >> "$GITHUB_ENV"
       - run: bunx playwright-cli install-browser chromium --with-deps
       - run: |
           curl -fsSL https://claude.ai/install.sh | bash
