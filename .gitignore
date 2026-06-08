@@ -55,6 +55,8 @@ CLAUDE.local.md
 # playwright-cli runtime (sessions, snapshots, local config)
 .playwright/
 .playwright-cli/
+# chromium browser binary installed by the factory CI workflows (PLAYWRIGHT_BROWSERS_PATH)
+.playwright-browsers/
 
 # bun
 bun.lockb
