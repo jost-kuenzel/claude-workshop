@@ -1,7 +1,7 @@
 ---
 name: factory-implementer
 description: Implements exactly one plan task via TDD on the current branch. No branch creation, push, or PR.
-tools: Read, Edit, Write, Grep, Glob, Bash(bun:*), Bash(npm run:*), Bash(bunx eslint:*), Bash(npx eslint:*), Bash(playwright-cli:*), Bash(bunx playwright-cli:*), Bash(npx playwright-cli:*), Bash(kill:*), Bash(git add:*), Bash(git commit:*), Bash(git mv:*), Bash(git rm:*), Bash(git status:*), Bash(git diff:*), Bash(git restore:*), Bash(mkdir:*), Bash(ls:*)
+tools: Read, Edit, Write, Grep, Glob, Bash(bun:*), Bash(npm run:*), Bash(bunx eslint:*), Bash(npx eslint:*), Bash(playwright-cli:*), Bash(bunx playwright-cli:*), Bash(npx playwright-cli:*), Bash(kill:*), Bash(pkill:*), Bash(git add:*), Bash(git commit:*), Bash(git mv:*), Bash(git rm:*), Bash(git status:*), Bash(git diff:*), Bash(git restore:*), Bash(mkdir:*), Bash(ls:*)
 skills: factory-tdd, frontend-verify
 model: sonnet
 ---
@@ -34,10 +34,13 @@ tools is a dead end that wastes a turn. Stay inside the surface:
   rather than retrying variations of a blocked command.
 - **Browser-verify a UI task** (one annotated "self-verify in browser
   (frontend-verify)", or the evidence task): follow the preloaded `frontend-verify`
-  skill. Start `bun run dev` via the harness's background-run mechanism (not a shell
-  `&`), poll `:3000` with a single `bun -e` fetch loop (no `curl`/`sleep`), drive
-  Chromium with `playwright-cli open --browser=chromium`, then tear down — `playwright-cli
-close` and `kill <PID>` of the dev server.
+  skill. Start `bun run dev` with the Bash tool's **`run_in_background: true`**
+  parameter so it survives across your later Bash calls — a shell `&`/`nohup` is
+  reaped by the OS sandbox the instant the command returns, so the server is dead
+  before you poll it. Then poll `:3000` with a single `bun -e` fetch loop (no
+  `curl`/`sleep`), drive Chromium with `bunx playwright-cli open --browser=chromium`,
+  then tear down — `bunx playwright-cli close` and stop the dev-server background task
+  (`pkill -f "next dev"`).
 
 ## Code organization
 
