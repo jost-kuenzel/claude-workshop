@@ -14,7 +14,7 @@ spec: docs/factory/specs/2026-06-08-1100--issue-36--format-duration--design.md
 ## Task Checklist
 
 - [x] Task 1: Implement `formatDuration` with tests
-- [ ] Task 2: Wire `formatDuration` into `resultSummary` and update its test
+- [x] Task 2: Wire `formatDuration` into `resultSummary` and update its test
 
 ---
 
