@@ -280,7 +280,7 @@ describe("resultSummary", () => {
       duration_ms: 42000,
       total_cost_usd: 0.21,
     };
-    expect(resultSummary("Task 2", ev)).toBe("✓ Task 2 · 8 turns · 42s · $0.21");
+    expect(resultSummary("Task 2", ev)).toBe("✓ Task 2 · 8 turns · 00:00:42 · $0.21");
   });
   test("marks non-success outcomes with ✗", () => {
     const ev = { type: "result", subtype: "error_max_turns", num_turns: 50 };

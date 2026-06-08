@@ -175,11 +175,11 @@ export function formatEvent(ev: any, agents: Map<string, string> = new Map()): s
 export function resultSummary(label: string, ev: any): string {
   const ok = ev?.subtype === "success" && !ev?.is_error;
   const turns = ev?.num_turns;
-  const secs = typeof ev?.duration_ms === "number" ? Math.round(ev.duration_ms / 1000) : undefined;
+  const duration = typeof ev?.duration_ms === "number" ? formatDuration(ev.duration_ms) : undefined;
   const cost = typeof ev?.total_cost_usd === "number" ? ev.total_cost_usd.toFixed(2) : undefined;
   const parts = [
     turns !== undefined ? `${turns} turns` : null,
-    secs !== undefined ? `${secs}s` : null,
+    duration !== undefined ? duration : null,
     cost !== undefined ? `$${cost}` : null,
   ].filter(Boolean);
   return `${ok ? "✓" : "✗"} ${label}${parts.length ? " · " + parts.join(" · ") : ""}`;
