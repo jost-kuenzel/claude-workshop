@@ -13,7 +13,7 @@ spec: docs/factory/specs/2026-06-08-2236--issue-45--show-loaded-skill-name--desi
 
 ## Task Checklist
 
-- [ ] Task 1: Fix TOOL_ARG_KEYS.Skill and add tests
+- [x] Task 1: Fix TOOL_ARG_KEYS.Skill and add tests
 
 ---
 
