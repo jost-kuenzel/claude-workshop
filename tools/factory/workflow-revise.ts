@@ -11,6 +11,14 @@ const REVISE_CAP = 5;
 export function nextReviseCount(current: number): number {
   return current + 1;
 }
+
+/** Current commit SHA of the checked-out worktree (trimmed). */
+async function gitHead(): Promise<string> {
+  const proc = Bun.spawn(["git", "rev-parse", "HEAD"], { stdout: "pipe" });
+  const out = await new Response(proc.stdout).text();
+  await proc.exited;
+  return out.trim();
+}
 export function isOverCap(count: number): boolean {
   return count > REVISE_CAP;
 }
@@ -85,7 +93,8 @@ const command = Command.make("workflow-revise", { pr, commentId, dryRun, runId }
       )
     );
 
-    // 4. invoke Claude to revise
+    // 4. invoke Claude to revise (record HEAD first so we can tell whether it committed)
+    const headBefore = dry ? "" : yield* Effect.promise(gitHead);
     yield* Effect.promise(() =>
       runClaude({
         prompt: buildRevisePrompt(args.pr, feedback || "(address the latest review comments)"),
@@ -97,13 +106,40 @@ const command = Command.make("workflow-revise", { pr, commentId, dryRun, runId }
       })
     );
 
-    // 5. push (Stop hook already gated lint+test during the Claude session)
-    if (!dry)
-      yield* Effect.promise(async () => {
-        await Bun.spawn(["git", "push"]).exited;
+    // 5. push the new commit(s) to the PR's head branch. The checkout step put us
+    //    on that named branch (not a detached HEAD), so push HEAD to it explicitly
+    //    and check the result instead of swallowing failures. (Stop hook already
+    //    gated lint+test during the Claude session.)
+    if (!dry) {
+      const headAfter = yield* Effect.promise(gitHead);
+      if (headAfter === headBefore) {
+        // No commit was produced — report it rather than reacting with a false success.
+        yield* Effect.promise(() =>
+          runGh(
+            issueCommentArgs(
+              args.pr,
+              "factory-revise: no changes were committed, so there is nothing to push."
+            )
+          )
+        );
+        return;
+      }
+      const branch = (yield* Effect.promise(() =>
+        runGh(["pr", "view", String(args.pr), "--json", "headRefName", "-q", ".headRefName"])
+      )).trim();
+      const pushOk = yield* Effect.promise(async () => {
+        const proc = Bun.spawn(["git", "push", "origin", `HEAD:refs/heads/${branch}`]);
+        return (await proc.exited) === 0;
       });
+      if (!pushOk) {
+        yield* Effect.promise(() =>
+          runGh(issueCommentArgs(args.pr, "factory-revise: `git push` failed — see the run logs."))
+        );
+        return yield* Effect.fail(new Error("git push failed"));
+      }
+    }
 
-    // 6. success reaction on the triggering comment
+    // 6. success reaction on the triggering comment (only after a commit landed)
     if (args.commentId) {
       yield* Effect.promise(() =>
         runGh(reactCommentArgs(args.commentId, "hooray"), { dryRun: dry })
