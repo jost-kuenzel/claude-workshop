@@ -19,66 +19,49 @@ spell them out.
 
 - Invoke it as **`bunx playwright-cli`** — in CI there is no global `playwright-cli`
   on `PATH` (a bare `playwright-cli` will be "command not found").
-- **Always prefix every `bunx playwright-cli` command with
-  `PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers"`** — like this:
-
-  ```bash
-  PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli open --browser=chromium http://localhost:3000/<route>
-  ```
-
-  Why, exactly: the CI workflow installs Chromium into `.playwright-browsers` at the
-  repo root (the one path that stays **writable** inside the OS sandbox). The
-  `playwright-cli` daemon writes its working dir to `$PLAYWRIGHT_BROWSERS_PATH/daemon`,
-  so this also keeps the daemon on a writable path. The default `~/.cache/ms-playwright`
-  is **read-only** in the sandbox (even `touch` fails), and that env var is **not**
-  inherited from the workflow — so if you don't set it inline on each call, the daemon
-  dies with `mkdir .../daemon: Read-only file system`. Set it on **every** call
-  (`open`, `snapshot`, `console`, `screenshot`, `close`, `kill-all`); env does not
-  persist between your Bash calls.
-
-- Do **not** rabbit-hole on alternatives (`PLAYWRIGHT_DAEMON_SESSION_DIR`, symlinking
-  `~/.cache`, `--browser=chromium-headless-shell`, a custom executable path). The
-  inline `PLAYWRIGHT_BROWSERS_PATH` above is the whole fix. **If the browser or daemon
-  still will not start**, report **`BLOCKED`** with the error — do **not** hand-roll a
-  raw `playwright` Node script (it bypasses the snapshot/console checks and produces
-  misleading evidence).
+- The CI workflow presets **`PLAYWRIGHT_BROWSERS_PATH`** to a sandbox-writable path
+  and installs Chromium there. **Do not override it.** `playwright-cli`'s daemon
+  writes its working dir under that path; the default `~/.cache/ms-playwright` is
+  read-only inside the sandbox. If — and only if — you hit
+  `mkdir .../daemon: Read-only file system`, export `PLAYWRIGHT_BROWSERS_PATH` to a
+  writable dir (e.g. under the repo) and retry.
+- **If the browser or daemon will not start at all** (after the read-only-path retry
+  above), report **`BLOCKED`** with the error. Do **not** hand-roll a raw `playwright`
+  Node script as a workaround — that bypasses the verification contract (no snapshot,
+  no console check) and produces misleading evidence.
 
 ## Flow
 
-1. **Server up.** First **poll `:3000`** — a dev server may already be running from an
-   earlier step in the same job. If it answers, **reuse it** (skip to step 2); do not
-   start a second one (a second `bun run dev` collides on the port / a stale
-   `.next` lock and wedges). Poll with a `bun -e` fetch loop (you have no
-   `curl`/`sleep`, and this is one command, satisfying the one-command-per-Bash rule):
-
-   ```bash
-   bun -e 'for (let i = 0; i < 60; i++) { try { const r = await fetch("http://localhost:3000"); if (r.status) { console.log("up", r.status); process.exit(0); } } catch {} await new Promise(s => setTimeout(s, 1000)); } console.log("timeout"); process.exit(1)'
-   ```
-
-   If `:3000` does **not** answer, start the server, then re-run the poll above. **How**
-   you launch it is what trips people up:
-   - Launch `bun run dev` with the **Bash tool's `run_in_background: true` parameter** —
-     the harness keeps that task alive across your _later_ Bash calls, which is exactly
-     what you need (start it in one call, then poll and drive the browser in separate
-     calls).
+1. **Server up — start it as a persistent background task.** The command is
+   `bun run dev`, but **how** you launch it is the thing that trips people up:
+   - Launch it with the **Bash tool's `run_in_background: true` parameter** — the
+     harness keeps that task alive across your _later_ Bash calls, which is exactly
+     what you need (you start the server in one call, then poll and drive the browser
+     in separate calls).
    - **Do NOT use a shell `&`, `nohup`, `disown`, or `setsid`.** Each Bash call runs in
      its own OS-sandbox invocation, and the sandbox **reaps the whole process tree the
      moment that foreground command returns** — so a shell-backgrounded `bun run dev &`
      is already dead before your next call polls it. This is the #1 reason the dev
      server "won't start." Only a harness-tracked background task survives.
 
-   If `:3000` still never responds after launching, report `BLOCKED`/`NEEDS_CONTEXT` —
-   do not fake a pass.
+   Then, in a **separate** Bash call, poll `:3000` until it answers with a `bun -e`
+   fetch loop (you have no `curl`/`sleep`, and this is one command, satisfying the
+   one-command-per-Bash rule):
+
+   ```bash
+   bun -e 'for (let i = 0; i < 60; i++) { try { const r = await fetch("http://localhost:3000"); if (r.status) { console.log("up", r.status); process.exit(0); } } catch {} await new Promise(s => setTimeout(s, 1000)); } console.log("timeout"); process.exit(1)'
+   ```
+
+   If `:3000` never responds, report `BLOCKED`/`NEEDS_CONTEXT` — do not fake a pass.
 
 2. **Browser.** Open Chromium — `--browser=chromium` is **mandatory** (`open` runs
    headless by default, which is what CI needs):
 
    ```bash
-   PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli open --browser=chromium http://localhost:3000/<route>
+   bunx playwright-cli open --browser=chromium http://localhost:3000/<route>
    ```
 
-   A bare `open` picks the `chrome` channel (`/opt/google/chrome/chrome`) and fails;
-   the `PLAYWRIGHT_BROWSERS_PATH` prefix is mandatory on every call (see above).
+   A bare `open` picks the `chrome` channel (`/opt/google/chrome/chrome`) and fails.
 
 3. **Drive, then wait for the Outcome to actually render.** Navigate to where the
    `Outcome` is observable. The app's chrome is client-rendered: components like the
@@ -89,16 +72,14 @@ spell them out.
    text, a sidebar nav link, or the user name — not just navigation/`networkidle`:
 
    ```bash
-   PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli snapshot
+   bunx playwright-cli snapshot
    ```
 
    Confirm the Outcome's element (and, on an authenticated page, the auth-dependent
    chrome) is present in the snapshot. If it isn't there yet, the page is mid-hydration
    — wait and re-`snapshot` before proceeding.
 
-4. **Console, filtered.** Check
-   `PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli console`.
-   Only **same-origin**
+4. **Console, filtered.** Check `bunx playwright-cli console`. Only **same-origin**
    (`localhost:3000`) errors count as a verification failure. **Foreign-origin**
    entries (external APIs, CDNs) are noise — ignore them, so verification does not fail
    on calls outside the app.
@@ -111,14 +92,12 @@ spell them out.
    background dev-server task you started in step 1:
 
    ```bash
-   PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli close
+   bunx playwright-cli close
    ```
 
-   Then stop the dev server so a later task can rebind `:3000` cleanly. Kill the
-   background task you launched **and** any lingering Next worker — `pkill -f next`
-   (broader than `next dev`, which only matches the launcher, not the `next-server`
-   worker that actually holds the port). Never leave an orphaned dev server or browser
-   session behind.
+   Then stop the dev server — kill the background task you launched (via the harness),
+   or, as a fallback, `pkill -f "next dev"`. Never leave an orphaned dev server or
+   browser session behind.
 
 ## Evidence variant
 
@@ -129,7 +108,7 @@ proof. Then, instead of console-checking, write the screenshot straight to the t
 path and commit it:
 
 ```bash
-PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli screenshot --filename=docs/factory/evidence/issue-<N>/<slug>.png
+bunx playwright-cli screenshot --filename=docs/factory/evidence/issue-<N>/<slug>.png
 git add docs/factory/evidence/issue-<N>/<slug>.png
 git commit -m "evidence: screenshot for issue <N>"
 ```

@@ -37,13 +37,10 @@ tools is a dead end that wastes a turn. Stay inside the surface:
   skill. Start `bun run dev` with the Bash tool's **`run_in_background: true`**
   parameter so it survives across your later Bash calls — a shell `&`/`nohup` is
   reaped by the OS sandbox the instant the command returns, so the server is dead
-  before you poll it. Poll `:3000` first (reuse a server already running) with a single
-  `bun -e` fetch loop (no `curl`/`sleep`); only start one if it is down. Drive Chromium
-  with `PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" bunx playwright-cli open
---browser=chromium` — that prefix is mandatory on **every** `playwright-cli` call (the
-  default `~/.cache` is read-only in the sandbox). Then tear down — `... bunx
-playwright-cli close` and `pkill -f next` (kills the `next-server` worker, not just
-  the launcher).
+  before you poll it. Then poll `:3000` with a single `bun -e` fetch loop (no
+  `curl`/`sleep`), drive Chromium with `bunx playwright-cli open --browser=chromium`,
+  then tear down — `bunx playwright-cli close` and stop the dev-server background task
+  (`pkill -f "next dev"`).
 
 ## Code organization
 
