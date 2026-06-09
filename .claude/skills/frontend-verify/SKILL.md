@@ -32,21 +32,11 @@ spell them out.
 
 ## Flow
 
-1. **Server up — start it as a persistent background task.** The command is
-   `bun run dev`, but **how** you launch it is the thing that trips people up:
-   - Launch it with the **Bash tool's `run_in_background: true` parameter** — the
-     harness keeps that task alive across your _later_ Bash calls, which is exactly
-     what you need (you start the server in one call, then poll and drive the browser
-     in separate calls).
-   - **Do NOT use a shell `&`, `nohup`, `disown`, or `setsid`.** Each Bash call runs in
-     its own OS-sandbox invocation, and the sandbox **reaps the whole process tree the
-     moment that foreground command returns** — so a shell-backgrounded `bun run dev &`
-     is already dead before your next call polls it. This is the #1 reason the dev
-     server "won't start." Only a harness-tracked background task survives.
-
-   Then, in a **separate** Bash call, poll `:3000` until it answers with a `bun -e`
-   fetch loop (you have no `curl`/`sleep`, and this is one command, satisfying the
-   one-command-per-Bash rule):
+1. **Server up.** Start `bun run dev` in the **background** (the harness's
+   background-run mechanism, NOT a shell `&`) and **remember its PID** — you need it
+   for teardown. Then poll `:3000` until it answers, with a `bun -e` fetch loop (you
+   have no `curl`/`sleep`, and this is one command, satisfying the one-command-per-Bash
+   rule):
 
    ```bash
    bun -e 'for (let i = 0; i < 60; i++) { try { const r = await fetch("http://localhost:3000"); if (r.status) { console.log("up", r.status); process.exit(0); } } catch {} await new Promise(s => setTimeout(s, 1000)); } console.log("timeout"); process.exit(1)'
@@ -88,16 +78,14 @@ spell them out.
    red → fix the code and retry from step 2. After ~3 unproductive rounds, report
    `BLOCKED` (the existing escalation contract).
 
-6. **Teardown (mandatory, green or red).** Always close the browser and stop the
-   background dev-server task you started in step 1:
+6. **Teardown (mandatory, green or red).** Always:
 
    ```bash
    bunx playwright-cli close
+   kill <PID>
    ```
 
-   Then stop the dev server — kill the background task you launched (via the harness),
-   or, as a fallback, `pkill -f "next dev"`. Never leave an orphaned dev server or
-   browser session behind.
+   Never leave an orphaned dev server or browser session behind.
 
 ## Evidence variant
 
