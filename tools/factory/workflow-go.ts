@@ -201,7 +201,7 @@ const command = Command.make("workflow-go", { issue, dryRun, runId }, (args) =>
     if (!dry && Number.isInteger(prNumber)) {
       yield* Effect.promise(() =>
         runClaude({
-          prompt: buildFinalizePrompt(prNumber, planPath, args.issue),
+          prompt: buildFinalizePrompt(prNumber, planPath),
           ...CI_SANDBOX,
           maxTurns: 20,
           runId: args.runId,

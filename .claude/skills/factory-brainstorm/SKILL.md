@@ -36,32 +36,13 @@ approval before committing the spec.
    words when nuanced). Cover architecture, components, data flow, error handling,
    and testing. Follow existing patterns in the repo and fold in targeted
    improvements to code you're touching — but no unrelated refactoring.
-   - **UI-surface gate (always ask):** as part of the dialogue, ask whether this work
-     exposes a user-facing UI surface a reviewer should see render in a browser.
-     Factory/infra code and backend-only changes are `no`; anything that changes what
-     a user sees in the app is `yes`. Every spec ends with a `## Verification` section
-     capturing the answer (see step 6).
 6. **Write the spec** to
    `docs/factory/specs/<stamp>--issue-<N>--<slug>--design.md`, where `<stamp>`
    is the current `YYYY-MM-DD-HHMM` and `<slug>` is a short kebab-case slug of the
    title. Frontmatter must include `name`, `description`, `status: draft`, and
    `issue: N`. The `factory-spec-frontmatter` hook validates `issue:` on write.
    (`tools/factory/spec-author.ts`'s `buildFrontmatter` produces this shape, but
-   you must supply all four fields explicitly.) The spec MUST end with a
-   `## Verification` section recording the UI-surface answer:
-
-   ```
-   ## Verification
-   UI surface: yes | no
-   # only when yes:
-   Outcome: <the user-visible result that, observed in a browser, proves the feature
-             works — described abstractly, not as routes or click steps>
-   ```
-
-   Keep it **abstract**: declare _what_ outcome proves the feature, never concrete
-   routes, selectors, or click steps — those are the plan's and implementer's job, and
-   routes may not exist yet. On `no`, the section is just the `UI surface: no` line.
-
+   you must supply all four fields explicitly.)
 7. **Review loop**: dispatch the `factory-brainstorm-reviewer` agent. If
    `changes-requested`, edit the spec per findings and re-dispatch until `approved`.
 8. **Human gate**: ask the user to review the spec; loop back on requested changes.

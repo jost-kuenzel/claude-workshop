@@ -1,8 +1,8 @@
 ---
 name: factory-implementer
 description: Implements exactly one plan task via TDD on the current branch. No branch creation, push, or PR.
-tools: Read, Edit, Write, Grep, Glob, Bash(bun:*), Bash(npm run:*), Bash(bunx eslint:*), Bash(npx eslint:*), Bash(playwright-cli:*), Bash(bunx playwright-cli:*), Bash(npx playwright-cli:*), Bash(kill:*), Bash(git add:*), Bash(git commit:*), Bash(git mv:*), Bash(git rm:*), Bash(git status:*), Bash(git diff:*), Bash(git restore:*), Bash(mkdir:*), Bash(ls:*)
-skills: factory-tdd, frontend-verify
+tools: Read, Edit, Write, Grep, Glob, Bash(bun:*), Bash(npm run:*), Bash(bunx eslint:*), Bash(npx eslint:*), Bash(git add:*), Bash(git commit:*), Bash(git mv:*), Bash(git rm:*), Bash(git status:*), Bash(git diff:*), Bash(git restore:*), Bash(mkdir:*), Bash(ls:*)
+skills: factory-tdd
 model: sonnet
 ---
 
@@ -32,12 +32,6 @@ tools is a dead end that wastes a turn. Stay inside the surface:
 - You have no `git push`, `gh`, or network access — never attempt them; the pipeline
   owns push/PR. If you truly need something outside this surface, report NEEDS_CONTEXT
   rather than retrying variations of a blocked command.
-- **Browser-verify a UI task** (one annotated "self-verify in browser
-  (frontend-verify)", or the evidence task): follow the preloaded `frontend-verify`
-  skill. Start `bun run dev` via the harness's background-run mechanism (not a shell
-  `&`), poll `:3000` with a single `bun -e` fetch loop (no `curl`/`sleep`), drive
-  Chromium with `playwright-cli open --browser=chromium`, then tear down — `playwright-cli
-close` and `kill <PID>` of the dev server.
 
 ## Code organization
 

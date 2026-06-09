@@ -15,10 +15,9 @@ The pipeline is built from four kinds of part:
   hand off to the automation.
 - **GitHub Actions workflows** — two YAML workflows (`factory-go`, `factory-revise`)
   watch for those signals and launch the CI orchestrators.
-- **Skills** — `factory-*` skills (plus `frontend-verify`) encode the _how_ of each
-  stage (interview, write a spec, decompose a plan, implement one task, browser-verify
-  a UI). They run in a Claude session, whether you invoke them locally or CI invokes
-  them headlessly.
+- **Skills** — `factory-*` skills encode the _how_ of each stage (interview, write a
+  spec, decompose a plan, implement one task). They run in a Claude session, whether
+  you invoke them locally or CI invokes them headlessly.
 - **Subagents** — one TDD implementer plus several read-only reviewers, dispatched
   by the implement-task skill during the build.
 
@@ -27,13 +26,6 @@ orchestrators (`workflow-go.ts`, `workflow-revise.ts`) plus helpers that create
 issues, author specs, parse plans, and drive the `claude` and `gh` CLIs. During CI,
 every `claude` invocation runs inside an **OS sandbox** (see
 [The runner environment](#the-runner-environment)).
-
-A signal threaded through the whole pipeline is the spec's **`## Verification`
-gate** — `UI surface: yes | no`, declared once during brainstorm and inherited
-downstream without re-deciding. On `yes`, the implementer browser-verifies frontend
-work and one screenshot is committed and embedded in the PR; on `no`, none of that
-fires (factory/infra and backend-only work). See
-[The verification gate](#the-verification-gate).
 
 > The diagrams below are Mermaid. This guide cannot render them — please preview the
 > rendered output and report any diagram that fails to parse so it can be fixed.
@@ -60,9 +52,9 @@ flowchart TD
     end
 
     subgraph SPEC["Spec — local"]
-        SK_BS["skill: factory-brainstorm<br/>asks UI-surface question"]:::skill
+        SK_BS["skill: factory-brainstorm"]:::skill
         AG_BSR["agent: factory-brainstorm-reviewer<br/>opus, read-only"]:::agent
-        SPECF["artifact: spec + Verification gate<br/>docs/factory/specs/...--design.md"]:::artifact
+        SPECF["artifact: spec<br/>docs/factory/specs/...--design.md"]:::artifact
         ISSUE --> SK_BS --> AG_BSR
         AG_BSR -->|approved| SPECF
         AG_BSR -.->|changes-requested| SK_BS
@@ -75,14 +67,13 @@ flowchart TD
         WF["workflow: factory-go.yml"]:::gh
         ORCH["script: workflow-go.ts"]:::script
         PR["GitHub PR<br/>Closes #N"]:::gh
-        SK_PLAN["skill: factory-plan<br/>reads Verification gate"]:::skill
+        SK_PLAN["skill: factory-plan"]:::skill
         AG_PLANR["agent: factory-plan-reviewer<br/>opus"]:::agent
-        PLAN["artifact: plan<br/>self-verify annotations + evidence task"]:::artifact
+        PLAN["artifact: plan<br/>docs/factory/plans/...--plan.md"]:::artifact
         SK_TASK["skill: factory-implement-task"]:::skill
-        AG_IMPL["agent: factory-implementer<br/>sonnet, TDD + frontend-verify"]:::agent
+        AG_IMPL["agent: factory-implementer<br/>sonnet, TDD"]:::agent
         AG_SPECR["agent: factory-spec-reviewer<br/>sonnet"]:::agent
         AG_QUAL["agent: factory-code-quality-reviewer<br/>sonnet"]:::agent
-        EVID["artifact: screenshot<br/>docs/factory/evidence/issue-N/"]:::artifact
         LABEL --> WF --> ORCH --> PR
         ORCH --> SK_PLAN --> AG_PLANR
         AG_PLANR -->|approved| PLAN
@@ -92,8 +83,6 @@ flowchart TD
         AG_SPECR -->|compliant| AG_QUAL
         AG_QUAL -.->|issues| AG_IMPL
         AG_QUAL -->|approved| PLAN
-        AG_IMPL -.->|UI surface: yes| EVID
-        EVID --> PR
     end
 
     subgraph REV["Revision — CI, optional"]
@@ -103,46 +92,12 @@ flowchart TD
         CMT --> WF_REV --> ORCH_REV --> PR
     end
 
-    PR --> REVIEW["Human reviews PR<br/>(sees Verification evidence)"]:::human
+    PR --> REVIEW["Human reviews PR"]:::human
     REVIEW -.->|request changes| CMT
     REVIEW -->|approve| MERGE["Human merges to main"]:::human
 ```
 
 **Legend:** 🟨 human action · 🟦 GitHub object · 🟩 skill · 🟪 subagent · 🟧 script · ⬜ artifact.
-
----
-
-## The verification gate
-
-The UI-surface signal is declared **once in the spec** and flows unchanged through
-the pipeline — no component re-decides; each inherits and acts. The spec ends with:
-
-```
-## Verification
-UI surface: yes | no
-# only when yes:
-Outcome: <the user-visible result that, observed in a browser, proves the feature
-          works — described abstractly, not as routes or click steps>
-```
-
-It stays **abstract on purpose**: _what_ outcome proves the feature, never the
-concrete routes/selectors/click steps (those are the plan's and implementer's job,
-and routes may not exist at spec time). `UI surface: no` is the default for
-factory/infra and backend-only work.
-
-| Component                     | Role at the gate                                                                                                                                            |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `factory-brainstorm`          | **Raises** it: asks the UI-surface question, captures the abstract `Outcome` on `yes`, writes the `## Verification` section.                                |
-| `factory-brainstorm-reviewer` | Confirms the section is present and well-formed (abstract `Outcome` on `yes`, not over-specified).                                                          |
-| `factory-plan`                | **Enforces** it: on `yes` → annotate frontend impl tasks "self-verify in browser (frontend-verify)" + emit one evidence task at the end. On `no` → neither. |
-| `factory-plan-reviewer`       | Verifies the gate was applied correctly (annotations present, exactly one evidence task, or neither on `no`).                                               |
-| `factory-implementer`         | **Self-verifies** annotated tasks via the `frontend-verify` skill (Chromium, mandatory teardown); runs the evidence task.                                   |
-| `pr-finalize`                 | **Embeds** any screenshot under `docs/factory/evidence/issue-<N>/` inline in the PR body under `## Verification evidence`.                                  |
-
-Enforcement is via **skill instructions to the model**, not a new deterministic
-parser: `lib/plan.ts` still parses only the `## Task Checklist`; the evidence task is
-an ordinary checkbox line, framed as non-TDD "evidence capture" so neither the
-reviewers nor the implementer's TDD self-review flag it.
 
 ---
 
@@ -161,17 +116,14 @@ All issues get the **`factory-idea`** label; bugs also get **`bug`**. Never run
 
 Invoke the **`factory-brainstorm`** skill. It reads the issue (via `spec-author.ts`),
 runs a one-question-at-a-time dialogue, proposes 2–3 approaches, presents the design
-section-by-section, and — as part of the dialogue — **asks the UI-surface question**
-to raise the verification gate. It then loops the **`factory-brainstorm-reviewer`**
-subagent (opus, read-only) until it returns **`approved`**. After a human gate it
-commits the spec to `main` with `spec-author.ts --commit-spec`.
+section-by-section, then loops the **`factory-brainstorm-reviewer`** subagent
+(opus, read-only) until it returns **`approved`**. After a human gate it commits the
+spec to `main` with `spec-author.ts --commit-spec`.
 
 **Produces:** `docs/factory/specs/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--design.md`,
-frontmatter `{name, description, status: draft, issue: N}`, ending with the
-`## Verification` section.
+frontmatter `{name, description, status: draft, issue: N}`.
 **Invariant:** the `issue:` frontmatter is validated on every write by the
-`factory-spec-frontmatter` hook; the reviewer confirms the `## Verification` section
-is present and abstract. **Hands off:** prints
+`factory-spec-frontmatter` hook. **Hands off:** prints
 `gh issue edit N --add-label factory-go`.
 
 ### 3. The label gate _(human-driven)_
@@ -186,9 +138,8 @@ trusted authors because the CI build runs with loosened in-run permissions.
 `factory-go.yml` → `workflow-go.ts` reacts 👍, finds the spec by matching frontmatter
 `issue:`, creates branch `factory/issue-<N>--<slug>`, opens a PR (`Closes #N`), then
 invokes the **`factory-plan`** skill (headless `claude`). The skill decomposes the
-spec, **reads the `## Verification` gate** (on `yes`: annotates frontend tasks with a
-self-verify expectation and appends one evidence task), and loops the
-**`factory-plan-reviewer`** (opus) until **`approved`** before the plan is committed.
+spec and loops the **`factory-plan-reviewer`** (opus) until **`approved`** before the
+plan is committed.
 
 **Produces:** `docs/factory/plans/<YYYY-MM-DD-HHMM>--issue-<N>--<slug>--plan.md`,
 frontmatter `{issue: N, spec: <path>}`.
@@ -203,12 +154,8 @@ For each unchecked task, `workflow-go.ts` invokes the **`factory-implement-task`
 which dispatches subagents in a fixed order:
 
 1. **`factory-implementer`** (sonnet) — implements the one task on the branch using
-   **test-first** discipline (it has **`factory-tdd`** and **`frontend-verify`**
-   preloaded), then commits. On tasks annotated "self-verify in browser", it drives
-   Chromium via `frontend-verify` (background `bun run dev` → poll `:3000` →
-   `playwright-cli open --browser=chromium` → check same-origin console → teardown).
-   On the evidence task it captures the screenshot to `docs/factory/evidence/issue-<N>/`
-   and commits it. Returns `DONE` / `DONE_WITH_CONCERNS` / `NEEDS_CONTEXT` / `BLOCKED`.
+   **test-first** discipline (it has the **`factory-tdd`** skill preloaded), then commits.
+   Returns `DONE` / `DONE_WITH_CONCERNS` / `NEEDS_CONTEXT` / `BLOCKED`.
 2. **`factory-spec-reviewer`** (sonnet, read-only) — confirms the change matches the
    task/spec: nothing missing, nothing extra. Loops back to the implementer on issues.
 3. **`factory-code-quality-reviewer`** (sonnet, read-only) — only after spec compliance
@@ -224,13 +171,8 @@ the plan and after every task.
 
 ### 6. PR finalize _(CI, automated)_
 
-`workflow-go.ts` invokes **`pr-finalize.ts`** (passing the **issue number**) to rewrite
-the PR body (Summary + Test plan) from the plan and commit log via `gh pr edit`. If any
-images exist under `docs/factory/evidence/issue-<N>/`, the agent appends a
-**`## Verification evidence`** section embedding each via its absolute
-`raw.githubusercontent.com` URL on the PR branch (GitHub renders PR-body images only
-via an absolute URL). No images → no section. The orchestrator then reacts 🎉 (or 😕 on
-failure).
+`workflow-go.ts` invokes **`pr-finalize.ts`** to rewrite the PR body (Summary + Test
+plan) from the plan and commit log via `gh pr edit`, then reacts 🎉 (or 😕 on failure).
 
 ### 7. Revision _(CI, optional)_
 
@@ -242,8 +184,7 @@ the PR's review comments, and invokes `claude` to apply the changes on the PR br
 
 ### 8. Merge _(human-driven)_
 
-A human reviews the PR — including any inline `## Verification evidence` screenshot —
-and merges to `main`.
+A human reviews the PR and merges to `main`.
 
 ### Retrospective _(local, on demand)_
 
@@ -268,12 +209,12 @@ sequenceDiagram
     ORCH->>GH: react +1 on issue
     ORCH->>ORCH: find spec by frontmatter issue:N
     ORCH->>GH: create branch factory/issue-N--slug + open PR
-    ORCH->>CLA: plan-gen (factory-plan reads Verification gate)
+    ORCH->>CLA: plan-gen (factory-plan skill)
     CLA->>SUB: factory-plan-reviewer (loop until approved)
     CLA-->>ORCH: plan committed + pushed
     loop each unchecked task
         ORCH->>CLA: task-N (factory-implement-task skill)
-        CLA->>SUB: factory-implementer (TDD + frontend-verify, commits)
+        CLA->>SUB: factory-implementer (TDD, commits)
         CLA->>SUB: factory-spec-reviewer
         CLA->>SUB: factory-code-quality-reviewer
         Note over CLA,SUB: loop back to implementer until both pass
@@ -281,7 +222,7 @@ sequenceDiagram
         CLA-->>ORCH: task checked off, commit + push
         ORCH->>ORCH: verify checkbox flipped, else comment + halt
     end
-    ORCH->>CLA: pr-finalize (rewrite body + embed evidence via gh pr edit)
+    ORCH->>CLA: pr-finalize (rewrite PR body via gh pr edit)
     ORCH->>GH: react hooray
 ```
 
@@ -307,50 +248,44 @@ export const CI_SANDBOX = {
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": false,
-    "network": {
-      "allowedDomains": ["api.github.com", "github.com", "*.npmjs.org", "thesimpsonsapi.com"]
-    }
+    "network": { "allowedDomains": ["api.github.com", "github.com", "*.npmjs.org"] }
   }
 }
 ```
 
-`thesimpsonsapi.com` is the application's own data API — allowed so browser-verified
-pages render with real data; the allow-list is otherwise deliberately not widened.
 The sandbox needs **`bubblewrap`** (process/fs isolation) **and `socat`** (its localhost
 network proxy); on `ubuntu-24.04` the default AppArmor policy blocks bubblewrap from
 configuring its network namespace, so the workflows also relax
 `kernel.apparmor_restrict_unprivileged_userns`. The workflows install both packages
-and the Chromium browser (`install-browser chromium --with-deps`, for `frontend-verify`
-/ `playwright-cli`) before invoking `claude` — the agent installs nothing. Settings are
-passed via `--settings` (not the repo `.claude/settings.json`), so local `claude`
-sessions stay unsandboxed and unrestricted.
+and the Chromium browser (for the `playwright-cli` skill) before invoking `claude`.
+Settings are passed via `--settings` (not the repo `.claude/settings.json`), so local
+`claude` sessions stay unsandboxed and unrestricted.
 
 ---
 
 ## Reference tables
 
-### Skills (`.claude/skills/`)
+### Skills (`.claude/skills/factory-*`)
 
-| Skill                    | Stage                | Produces / does                                                             |
-| ------------------------ | -------------------- | --------------------------------------------------------------------------- |
-| `factory-issue`          | Idea → issue (local) | Files a GitHub issue via `issue-create.ts`; labels `factory-idea` (+`bug`)  |
-| `factory-brainstorm`     | Issue → spec (local) | Reviewed spec + `## Verification` gate committed to `main`; prints the hint |
-| `factory-plan`           | Plan gen (CI)        | Checkbox task plan; applies the gate; loops `factory-plan-reviewer`         |
-| `factory-implement-task` | Task loop (CI)       | Drives implementer → spec-review → quality-review for one task              |
-| `factory-tdd`            | Within implement     | Enforces test-first (red → green → refactor)                                |
-| `frontend-verify`        | Within implement     | Browser-verifies UI in Chromium; evidence-screenshot variant                |
-| `factory-retro`          | On demand (local)    | Mines run logs for learnings; routes findings to fixes                      |
-| `docs-factory`           | On demand (local)    | Regenerates this guide from live sources                                    |
+| Skill                    | Stage                | Produces / does                                                            |
+| ------------------------ | -------------------- | -------------------------------------------------------------------------- |
+| `factory-issue`          | Idea → issue (local) | Files a GitHub issue via `issue-create.ts`; labels `factory-idea` (+`bug`) |
+| `factory-brainstorm`     | Issue → spec (local) | Reviewed spec committed to `main`; prints the `factory-go` hint            |
+| `factory-plan`           | Plan gen (CI)        | Checkbox task plan; loops `factory-plan-reviewer` to approval              |
+| `factory-implement-task` | Task loop (CI)       | Drives implementer → spec-review → quality-review for one task             |
+| `factory-tdd`            | Within implement     | Enforces test-first (red → green → refactor)                               |
+| `factory-retro`          | On demand (local)    | Mines run logs for learnings; routes findings to fixes                     |
+| `docs-factory`           | On demand (local)    | Regenerates this guide from live sources                                   |
 
 ### Subagents (`.claude/agents/factory-*`)
 
-| Agent                           | Model  | Tools                                | Role / returns                                                                                             |
-| ------------------------------- | ------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `factory-implementer`           | sonnet | edit + bun/eslint + playwright + git | Implements one task (TDD; `frontend-verify` for UI). `DONE`/`DONE_WITH_CONCERNS`/`NEEDS_CONTEXT`/`BLOCKED` |
-| `factory-brainstorm-reviewer`   | opus   | Read, Grep, Glob                     | Reviews the spec doc incl. the Verification gate. `approved` / `changes-requested`                         |
-| `factory-plan-reviewer`         | opus   | Read, Grep, Glob                     | Reviews the plan vs spec incl. gate application. `approved` / `changes-requested`                          |
-| `factory-spec-reviewer`         | sonnet | Read, Grep, Glob, git diff/log       | Confirms implementation matches task/spec. `✅ compliant` / `❌ issues`                                    |
-| `factory-code-quality-reviewer` | sonnet | Read, Grep, Glob, git diff/log       | Assesses quality after spec passes. Approved / changes required                                            |
+| Agent                           | Model  | Tools                          | Role / returns                                                                                    |
+| ------------------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `factory-implementer`           | sonnet | edit + bun/eslint + local git  | Implements one task (TDD). Returns `DONE` / `DONE_WITH_CONCERNS` / `NEEDS_CONTEXT` / `BLOCKED`    |
+| `factory-brainstorm-reviewer`   | opus   | Read, Grep, Glob               | Reviews the spec doc. `approved` / `changes-requested` (Issues vs Recommendations)                |
+| `factory-plan-reviewer`         | opus   | Read, Grep, Glob               | Reviews the plan vs spec (coverage, fresh-context buildability). `approved` / `changes-requested` |
+| `factory-spec-reviewer`         | sonnet | Read, Grep, Glob, git diff/log | Confirms implementation matches task/spec. `✅ compliant` / `❌ issues`                           |
+| `factory-code-quality-reviewer` | sonnet | Read, Grep, Glob, git diff/log | Assesses quality after spec passes. Approved / changes required                                   |
 
 ### GitHub Actions (workflow → trigger → script)
 
@@ -359,9 +294,10 @@ sessions stay unsandboxed and unrestricted.
 | `factory-go.yml`     | `issues: [labeled]`        | `label.name == 'factory-go'` **and** issue `author_association` in `OWNER/MEMBER/COLLABORATOR`                        | `workflow-go.ts`     |
 | `factory-revise.yml` | `issue_comment: [created]` | comment on a PR, body contains `/factory-revise`, **and** comment `author_association` in `OWNER/MEMBER/COLLABORATOR` | `workflow-revise.ts` |
 
-Both: `permissions: contents/issues/pull-requests: write`; install `bubblewrap`+`socat`,
-relax AppArmor, install Chromium + the `claude` CLI before running; upload
-`.factory/logs/` as `factory-logs-<run-id>`.
+Both: `permissions: contents/issues/pull-requests: write`; install `bubblewrap`+`socat`
+
+- relax AppArmor + install Chromium + install the `claude` CLI before running; upload
+  `.factory/logs/` as `factory-logs-<run-id>`.
 
 ### Scripts (`tools/factory/*`)
 
@@ -371,7 +307,7 @@ relax AppArmor, install Chromium + the `claude` CLI before running; upload
 | `workflow-revise.ts` | Revision orchestrator: cap → gather feedback → revise → push (cap 5)                                              |
 | `plan-gen.ts`        | Invokes `claude` (factory-plan) under `CI_SANDBOX`; exports `buildPrompt`                                         |
 | `task-run.ts`        | Runs one task: parse plan → invoke `claude` (factory-implement-task) → verify checkbox; exports `buildTaskPrompt` |
-| `pr-finalize.ts`     | Rewrites the PR body + embeds evidence screenshots; exports `buildFinalizePrompt(pr, plan, issue)`                |
+| `pr-finalize.ts`     | Rewrites the PR body; exports `buildFinalizePrompt`                                                               |
 | `spec-author.ts`     | `slugify`, `truncateSlug`, `specFilename`, frontmatter, read-issue, commit-spec                                   |
 | `issue-create.ts`    | Formats + creates issues with factory labels                                                                      |
 | `lib/claude.ts`      | `runClaude`, `buildClaudeArgs`, the `CI_SANDBOX` profile, stream-json log formatting                              |
@@ -395,15 +331,6 @@ relax AppArmor, install Chromium + the `claude` CLI before running; upload
 | PR comment `/factory-revise`  | Starts a revision round (`factory-revise.yml`) — trusted comment authors only, cap 5 |
 | reactions 👍 / 🎉 / 😕        | Run started / succeeded / errored                                                    |
 
-### Artifact paths
-
-| Path                                   | What                                                       |
-| -------------------------------------- | ---------------------------------------------------------- |
-| `docs/factory/specs/...--design.md`    | Reviewed spec (carries the `## Verification` gate)         |
-| `docs/factory/plans/...--plan.md`      | Task plan (`## Task Checklist` = single source of truth)   |
-| `docs/factory/evidence/issue-<N>/`     | Committed UI screenshot(s); embedded inline in the PR body |
-| `.factory/logs/<run-id>--<step>.jsonl` | Per-phase CI logs, uploaded as `factory-logs-<run-id>`     |
-
 ---
 
 ## Quick start
@@ -414,14 +341,12 @@ relax AppArmor, install Chromium + the `claude` CLI before running; upload
 /factory-issue            # → issue #N (label: factory-idea)
 
 # 2. Issue → spec (same session)
-#    Guided design; the UI-surface question sets the Verification gate;
-#    reviewer loop; commits the spec to main.
+#    Guided design; reviewer loop; commits the spec to main.
 /factory-brainstorm       # → docs/factory/specs/...--issue-N--...--design.md
 
 # 3. Start the automated build
 gh issue edit N --add-label factory-go
-#    CI plans, implements, self-reviews (browser-verifies UI on "UI surface: yes"),
-#    and opens a PR (Closes #N) with any screenshot embedded inline.
+#    CI plans, implements, self-reviews, and opens a PR (Closes #N).
 
 # 4. (optional) Ask for a revision round — comment on the PR:
 #    /factory-revise please rename X to Y and add a test for Z
