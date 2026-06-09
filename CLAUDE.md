@@ -22,6 +22,3 @@ tools as these:
 - `bun run test` to run unittests
 - `bun run lint` to lint the code
 - `bun run typecheck` to check types
-- If applicable, use the `playwright-cli` skill to drive a headless browser
-  against the running dev server (`bun run dev`, http://localhost:3000) and
-  verify frontend changes end-to-end

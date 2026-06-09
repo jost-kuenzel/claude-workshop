@@ -38,9 +38,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - run: bun install --frozen-lockfile
-      # Install the chromium browser (+ OS deps) so the playwright-cli skill can
-      # drive a headless browser against the frontend during the Claude steps.
-      - run: bunx playwright-cli install-browser chromium --with-deps
       - run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
