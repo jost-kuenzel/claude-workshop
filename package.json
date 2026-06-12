@@ -19,6 +19,7 @@
     "lint": "bunx eslint",
     "format": "bunx prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "seed": "bun run tools/scripts/seed.ts",
+    "sandbox": "bun tools/sandbox/sandbox.ts",
     "test": "bun test src/__tests__ src/lib src/app/api tools && vitest run",
     "test:watch": "bun test src/__tests__ src/lib src/app/api tools --watch",
     "test:coverage": "bun test src/__tests__ src/lib src/app/api tools --coverage && vitest run --coverage",

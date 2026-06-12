@@ -31,17 +31,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Available Scripts
 
-| Script                | Description                    |
-| --------------------- | ------------------------------ |
-| `bun run dev`         | Start development server       |
-| `bun run build`       | Production build               |
-| `bun run start`       | Start production server        |
-| `bun run seed`        | Seed database with sample data |
-| `bun run lint`        | Run ESLint                     |
-| `bun run format`      | Run Prettier                   |
-| `bun test`            | Run unit tests                 |
-| `bun test --watch`    | Run unit tests in watch mode   |
-| `bun test --coverage` | Run unit tests with coverage   |
+| Script                | Description                                                                |
+| --------------------- | -------------------------------------------------------------------------- |
+| `bun run dev`         | Start development server                                                   |
+| `bun run build`       | Production build                                                           |
+| `bun run start`       | Start production server                                                    |
+| `bun run seed`        | Seed database with sample data                                             |
+| `bun run sandbox`     | Enter the egress-firewalled Claude dev container ([docs](docs/sandbox.md)) |
+| `bun run lint`        | Run ESLint                                                                 |
+| `bun run format`      | Run Prettier                                                               |
+| `bun test`            | Run unit tests                                                             |
+| `bun test --watch`    | Run unit tests in watch mode                                               |
+| `bun test --coverage` | Run unit tests with coverage                                               |
 
 ## Supply-chain hardening (minimum release age)
 
