@@ -42,7 +42,7 @@ automatically — **do not edit them**; changing `CI_SANDBOX` in Task 1 is enoug
 
 ## Task Checklist
 
-- [ ] Task 1: Flip `CI_SANDBOX` to auto mode + pin model opus (TDD)
+- [x] Task 1: Flip `CI_SANDBOX` to auto mode + pin model opus (TDD)
 - [ ] Task 2: Repurpose `ci.settings.json` into an autoMode trusted-infra config
 - [ ] Task 3: Add the GHCR devcontainer-image publish workflow
 - [ ] Task 4: Rewrite `factory-go.yml` to run inside the image
