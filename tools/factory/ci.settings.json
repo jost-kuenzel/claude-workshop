@@ -1,9 +1,9 @@
 {
-  "sandbox": {
-    "enabled": true,
-    "allowUnsandboxedCommands": false,
-    "network": {
-      "allowedDomains": ["api.github.com", "github.com", "*.npmjs.org"]
-    }
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Organization: the ACME CRM workshop project (github.com/jost-kuenzel/claude-workshop). Primary use: an automated software-engineering factory that, per task, edits this repo, commits, pushes a feature branch, and opens a pull request against this same repo. Pushing feature branches and opening or commenting on PRs on this repo is routine and trusted; pushing to or force-pushing main is not.",
+      "Trusted upstream data API: thesimpsonsapi.com (including its image CDN cdn.thesimpsonsapi.com) is the ACME CRM app's external data source. The local dev server (localhost:3000) and the Playwright browser verification fetch application data and images from it during verification; outbound requests to thesimpsonsapi.com and cdn.thesimpsonsapi.com are routine and trusted, not exfiltration."
+    ]
   }
 }

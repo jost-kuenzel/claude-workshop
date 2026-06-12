@@ -41,11 +41,12 @@ describe("buildClaudeArgs", () => {
     expect(args).not.toContain("--settings");
   });
 
-  test("emits --settings and omits --allowedTools under the sandbox profile", () => {
+  test("emits --settings, auto mode, and a pinned model; omits --allowedTools under the sandbox profile", () => {
     const args = buildClaudeArgs({ prompt: "p", ...CI_SANDBOX });
-    expect(args).not.toContain("--allowedTools"); // sandbox is the boundary, not a list
+    expect(args).not.toContain("--allowedTools"); // container + classifier is the boundary, not a list
     expect(args[args.indexOf("--settings") + 1]).toBe("tools/factory/ci.settings.json");
-    expect(args[args.indexOf("--permission-mode") + 1]).toBe("bypassPermissions");
+    expect(args[args.indexOf("--permission-mode") + 1]).toBe("auto");
+    expect(args[args.indexOf("--model") + 1]).toBe("opus");
   });
 });
 

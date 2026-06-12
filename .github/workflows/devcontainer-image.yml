@@ -1,0 +1,47 @@
+name: devcontainer-image
+# Publishes the .devcontainer image to a private GHCR package for the CI factory
+# jobs (factory-go / factory-revise) to pull. Built linux/amd64 only — that is the
+# GitHub Actions runner arch and the only consumer of this image; local arm64 Macs
+# build the same Dockerfile directly via `@devcontainers/cli` (`bun run sandbox`),
+# so no multi-arch manifest is needed. See the issue-54 design spec §4.1.
+on:
+  push:
+    branches: [main]
+    paths: [".devcontainer/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: devcontainer-image
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .devcontainer
+          push: true
+          tags: |
+            ghcr.io/jost-kuenzel/claude-workshop-devcontainer:latest
+            ghcr.io/jost-kuenzel/claude-workshop-devcontainer:${{ github.sha }}
+          build-args: |
+            TZ=Europe/Berlin
+            CLAUDE_CODE_VERSION=2.1.175
+            BUN_VERSION=1.2.0
+            PLAYWRIGHT_VERSION=1.60.0
+            GIT_DELTA_VERSION=0.18.2
+            ZSH_IN_DOCKER_VERSION=1.2.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

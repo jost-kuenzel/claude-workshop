@@ -4,7 +4,8 @@ export interface ClaudeOptions {
   prompt: string;
   /**
    * Tool allowlist (per-step scoping). Omitted under {@link CI_SANDBOX}, where the
-   * OS sandbox is the boundary and `bypassPermissions` makes the allowlist moot.
+   * egress-firewalled container + auto-mode classifier are the boundary, so no
+   * per-step tool list is needed.
    */
   allowedTools?: string[];
   /** Path to a settings JSON file (`--settings`); layered over `.claude/settings.json`. */
@@ -20,14 +21,17 @@ export interface ClaudeOptions {
 }
 
 /**
- * Shared CI invocation profile: OS-sandboxed bash + bypassed permission prompts.
- * The sandbox config (`tools/factory/ci.settings.json`) is the real boundary —
- * network egress is blocked at the OS proxy — so steps need no per-tool allow/deny
- * lists. Local runs that don't spread this in stay completely unrestricted.
+ * Shared CI invocation profile. The egress-firewalled devcontainer image is the
+ * boundary now (one image, used locally and in CI), so steps need no per-tool
+ * allow/deny lists. Auto mode's server-side classifier reviews each action
+ * before it runs; its trusted-infrastructure config lives in
+ * tools/factory/ci.settings.json, passed via --settings. `model: "opus"` pins an
+ * auto-mode-eligible model (auto mode requires Opus 4.6+ / Sonnet 4.6).
  */
 export const CI_SANDBOX = {
   settings: "tools/factory/ci.settings.json",
-  permissionMode: "bypassPermissions",
+  permissionMode: "auto",
+  model: "opus",
 } as const;
 
 /** Pure: build the argv passed to the `claude` binary (binary name excluded). */

@@ -85,6 +85,9 @@ done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 #   *.githubusercontent.com / codeload — raw/release/clone downloads
 #   registry.npmjs.org   — `bun install` dependency fetches
 #   thesimpsonsapi.com   — the ACME CRM app's data source (app + verify)
+#   cdn.thesimpsonsapi.com — the app's image CDN (src/lib/simpsons.ts CDN_BASE);
+#                          a separate host from the apex, so it needs its own
+#                          allow entry or browser image loads are blocked.
 for domain in \
     "registry.npmjs.org" \
     "api.anthropic.com" \
@@ -93,7 +96,8 @@ for domain in \
     "raw.githubusercontent.com" \
     "objects.githubusercontent.com" \
     "codeload.github.com" \
-    "thesimpsonsapi.com"; do
+    "thesimpsonsapi.com" \
+    "cdn.thesimpsonsapi.com"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
