@@ -47,7 +47,7 @@ automatically — **do not edit them**; changing `CI_SANDBOX` in Task 1 is enoug
 - [x] Task 3: Add the GHCR devcontainer-image publish workflow
 - [x] Task 4: Rewrite `factory-go.yml` to run inside the image
 - [x] Task 5: Rewrite `factory-revise.yml` to run inside the image
-- [ ] Task 6: Refresh the factory process guide (docs-factory skill)
+- [x] Task 6: Refresh the factory process guide (docs-factory skill)
 
 ---
 
