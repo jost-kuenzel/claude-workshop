@@ -15,10 +15,17 @@ jobs:
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    container:
+      image: ghcr.io/jost-kuenzel/claude-workshop-devcontainer:latest
+      credentials:
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --cap-add=NET_ADMIN --cap-add=NET_RAW --user 1000
     permissions:
       contents: write
       issues: write
       pull-requests: write
+      packages: read
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -34,22 +41,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.prbranch.outputs.name }}
-      - uses: oven-sh/setup-bun@v2
-      # OS sandbox backend for the Claude steps. Needs bubblewrap (process/fs isolation)
-      # + socat (localhost network proxy). On ubuntu-24.04 the default AppArmor policy
-      # (kernel.apparmor_restrict_unprivileged_userns=1) blocks bwrap from configuring
-      # its network namespace's loopback (RTM_NEWADDR EPERM), so relax it for this
-      # ephemeral runner. Without this the sandbox can't init and commands fail closed.
-      - run: |
-          sudo apt-get update && sudo apt-get install -y bubblewrap socat
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - run: sudo /usr/local/bin/init-firewall.sh
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - run: bun install --frozen-lockfile
-      - run: |
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: bun tools/factory/workflow-revise.ts
       - if: always()
         uses: actions/upload-artifact@v4
